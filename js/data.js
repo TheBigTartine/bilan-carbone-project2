@@ -35,13 +35,16 @@ window.FACTEURS = {
     tgv: { label: 'TGV', f: 0.00293, source: 'ADEME 43256 (TGV, 2022)' },
     intercites: { label: 'Intercités', f: 0.0075, source: 'ADEME 43272 (Intercités, 2022)' },
     ter: { label: 'TER', f: 0.0277, source: 'ADEME 43255 (TER, traction moyenne, 2022)' },
-    train_us: { label: 'Train (Amérique du Nord)', f: 0.041, source: 'À vérifier : pas de facteur ADEME pour les États-Unis ni le Canada' },
+    // EPA, GHG Emission Factors Hub 2025, table 10, « Intercity Rail – Other Routes » (hors corridor Nord-Est) :
+    // 0,149 kg CO2 + 0,012 g CH4 + 0,004 g N2O par passager-mile (PRG 28 et 265) = 0,150 kgCO2e ÷ 1,609 km.
+    train_us: { label: 'Train (Amérique du Nord)', f: 0.093, source: 'EPA, GHG Emission Factors Hub 2025, Amtrak hors corridor Nord-Est (pas de facteur ADEME)' },
     autocar: { label: 'Autocar / navette', f: 0.0376, source: 'ADEME 43740 (Autocar, gazole)' },
     bus: { label: 'Bus urbain', f: 0.122, source: 'ADEME 43739 (Autobus, gazole)' },
     metro: { label: 'Métro / tram', f: 0.00442, source: 'ADEME 43778 (Métro, Île-de-France, 2022)' },
-    voiture: { label: 'Voiture thermique', f: 0.218, parVehicule: true, source: 'À vérifier : valeur non retrouvée dans la base en vigueur' },
+    // ADEME 43791 : amont 0,053 + combustion 0,161 + fabrication 0,041 = 0,256 kgCO2e par km de véhicule.
+    voiture: { label: 'Voiture thermique', f: 0.256, parVehicule: true, source: 'ADEME 43791 (Voiture, motorisation moyenne, 2023)' },
     voiture_elec: { label: 'Voiture électrique', f: 0.103, parVehicule: true, source: 'ADEME 28007 (Voiture particulière compacte, électrique)' },
-    taxi: { label: 'Taxi / VTC', f: 0.218, parVehicule: true, source: 'À vérifier : même valeur que la voiture thermique' }
+    taxi: { label: 'Taxi / VTC', f: 0.256, parVehicule: true, source: 'ADEME 43791, comme la voiture (pas de facteur ADEME propre au taxi)' }
   },
   // Repères pédagogiques (affichés avec leur source, sans les additionner au bilan).
   reperes: {

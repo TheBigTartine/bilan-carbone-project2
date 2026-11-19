@@ -488,8 +488,10 @@
           <li>Les + ${F.correctionKm} km sont un forfait : la trajectoire réelle peut être plus longue ou plus courte.</li>
           <li>L'effet des traînées est incertain : il dépend de l'altitude, de l'humidité et de l'heure du vol. Le coefficient de l'ADEME est une moyenne, d'où l'affichage des deux résultats.</li>
           <li>Les coefficients de classe viennent d'une autre convention (DEFRA) : ils restent en analyse complémentaire.</li>
+          <li>Le train en Amérique du Nord vient de l'EPA (agence américaine de l'environnement), car l'ADEME n'a pas de facteur pour ce pays. L'EPA ne compte que les émissions du train, pas la production du carburant : ce facteur est un peu sous-estimé par rapport à ceux de l'ADEME.</li>
+          <li>La voiture et le taxi utilisent le facteur d'une voiture moyenne française. Une voiture américaine consomme en général plus, et un taxi roule aussi à vide entre deux clients : ces trajets sont un peu sous-estimés.</li>
           <li>Le périmètre se limite aux déplacements : hébergement, repas et achats sur place sont exclus.</li></ul></div>
-        <div class="note warn" style="--i:5"><b>Encore à vérifier par le pôle :</b> le facteur du train en Amérique du Nord (pas de valeur ADEME pour les États-Unis ni le Canada) et celui de la voiture thermique et du taxi. Source des autres facteurs : ${esc(F.version)}, <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a>.</div>
+        <div class="note" style="--i:5"><b>Sources :</b> ${esc(F.version)}, <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a>. Train en Amérique du Nord : <a href="https://www.epa.gov/climateleadership/ghg-emission-factors-hub" target="_blank" rel="noopener">EPA, GHG Emission Factors Hub 2025</a>.</div>
       </div>`;
   }
 
