@@ -78,19 +78,34 @@
     return n && i >= 0 ? `${esc(s.slice(0, i))}<b>${esc(s.slice(i, i + n.length))}</b>${esc(s.slice(i + n.length))}` : esc(s);
   };
 
-  // ---------- Étapes d'un vol ----------
+  // ---------- Étapes d'un itinéraire ----------
   // v.etapes garde les cases vides (escale pas encore choisie) ; v.route reste la référence pour le calcul.
-  function etapes(v) {
+  // v.modes[i] = moyen de transport pour ARRIVER à l'étape i (avion, autocar, train, voiture) ;
+  // v.legModes = la même chose par segment de v.route, lu par le calcul (js/calc.js).
+  const MODES = [['avion', '✈', 'Avion'], ['autocar', '🚌', 'Bus / autocar'], ['train', '🚆', 'Train'], ['voiture', '🚗', 'Voiture']];
+  const modeDe = k => MODES.find(m => m[0] === k) || MODES[0];
+  function etat(v) {
     const codes = String(v.route || '').toUpperCase().split(/[^A-Z]+/).filter(Boolean);
-    if (Array.isArray(v.etapes) && v.etapes.filter(Boolean).join('-') === codes.join('-') && v.etapes.length >= 2) return v.etapes.slice();
+    if (Array.isArray(v.etapes) && v.etapes.filter(Boolean).join('-') === codes.join('-') && v.etapes.length >= 2) {
+      const et = v.etapes.slice();
+      const mo = Array.isArray(v.modes) && v.modes.length === et.length ? v.modes.slice() : et.map((_, i) => i ? 'avion' : '');
+      return { et, mo };
+    }
     while (codes.length < 2) codes.push('');
-    return codes;
+    const lm = Array.isArray(v.legModes) ? v.legModes : [];
+    return { et: codes, mo: codes.map((_, i) => i ? (lm[i - 1] || 'avion') : '') };
   }
-  function setEtapes(v, arr) { v.etapes = arr; v.route = arr.filter(Boolean).join('-'); }
+  function setEtat(v, et, mo) {
+    v.etapes = et; v.modes = mo; v.route = et.filter(Boolean).join('-');
+    let premier = true; v.legModes = [];
+    et.forEach((c, i) => { if (!c) return; if (premier) { premier = false; return; } v.legModes.push(mo[i] || 'avion'); });
+  }
   const affAeroport = (code, st) => {
     if (!code) return '';
     const a = Calc.aeroport(code, st);
-    return a ? `${villeDe[code] || a.nom} · ${a.nom}` : code;
+    if (!a) return code;
+    const ville = villeDe[code] || a.nom;
+    return norm(a.nom).startsWith(norm(ville)) ? a.nom : `${ville} · ${a.nom}`; // évite « Atlanta · Atlanta »
   };
 
   // =====================================================================
@@ -101,21 +116,24 @@
     const r = Calc.calculer(st);
     return `
       <div class="head"><div><div class="page-title">Collecte des données · Adrien</div><h1 style="font-size:28px">Itinéraires et voitures de location</h1></div></div>
-      <div class="note" style="--i:0">Tapez le <b>nom d'une ville</b> (ex. « Atlanta », « Paris », « Montréal ») : le site propose ses aéroports. Ajoutez une ligne par escale. Les distances et les émissions se recalculent tout de suite, et tout est repris dans les onglets Saisie, Synthèse et Rapport.</div>
+      <div class="note" style="--i:0">Tapez le <b>nom d'une ville</b> (ex. « Atlanta », « Paris », « Montréal ») : le site propose ses aéroports. Ajoutez une ligne par escale. Pour chaque segment, choisissez le <b>moyen de transport</b> : par exemple Atlanta → Indianapolis en <b>🚌 bus</b> plutôt qu'en avion. Les distances et les émissions se recalculent tout de suite, et tout est repris dans les onglets Saisie, Synthèse et Rapport.</div>
 
-      <h2 class="section mt2">1. Aéroports de l'itinéraire</h2>
+      <h2 class="section mt2">1. Itinéraires : vols, bus et trains</h2>
       <div class="grid grid-2 tj-grid">
-      ${st.groupes.map((g, gi) => `
+      ${st.groupes.map((g, gi) => {
+        const sol = r.groupes[gi].vols.reduce((s, x) => s + (x.sol || 0), 0);
+        return `
         <div class="card" style="--i:${gi + 1}">
           <div class="group-head"><span class="dot" style="width:12px;height:12px;background:var(${gi ? '--c-hec' : '--c-kelley'})"></span><b>${esc(g.nom)}</b>
-            <span class="pill accent" style="margin-left:auto">${t(r.groupes[gi].air)} tCO2e en vol</span></div>
+            <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap"><span class="pill accent">✈ ${t(r.groupes[gi].air)} tCO2e</span>${sol ? `<span class="pill tj-pill-sol">🚌 ${t(sol, 2)} tCO2e</span>` : ''}</span></div>
+          ${repartition(g)}
           ${g.vols.map((v, vi) => volTable(st, r, g, gi, v, vi)).join('')}
           <button class="btn sm mt no-print" data-tj="add-vol" data-g="${gi}">+ Ajouter un itinéraire</button>
-        </div>`).join('')}
+        </div>`; }).join('')}
       </div>
 
-      <h2 class="section mt2">2. Voitures de location</h2>
-      <p class="muted sub">Une ligne par trajet. Indiquez le trajet (ville de départ et d'arrivée) <b>ou</b> directement la distance. Le modèle donne la consommation moyenne, les émissions et les polluants.</p>
+      <h2 class="section mt2">2. Voitures de location sur place</h2>
+      <p class="muted sub">Une fiche par trajet en voiture de location. Indiquez la ville de départ et d'arrivée (la distance se calcule seule) <b>ou</b> tapez directement la distance. Le véhicule donne la consommation, les émissions et les polluants. Pas d'idée ? Partez d'un <b>exemple</b> et adaptez-le.</p>
       <datalist id="sources-tj"><option value="Hypothèse"><option value="Responsable Study Tour"><option value="Questionnaire étudiant"><option value="Devis du loueur"></datalist>
       ${st.groupes.map((g, gi) => locTable(st, r, g, gi)).join('')}
 
@@ -137,31 +155,72 @@
       </details>`;
   }
 
+  // Répartition des participants entre les itinéraires (sous-groupes) : la somme doit retomber sur l'effectif.
+  let divise = null; // « groupe-itinéraire » dont le formulaire « Diviser » est ouvert
+  function repartition(g) {
+    if (g.vols.length < 2) return '';
+    const parts = g.vols.map(v => +v.pax || 0), somme = parts.reduce((a, b) => a + b, 0), P = +g.participants || 0;
+    const ok = somme === P;
+    return `<div class="tj-rep ${ok ? '' : 'warn'}">${ok ? '✓' : '⚠'} Passagers : ${parts.join(' + ')} = <b>${somme}</b> sur ${P} participants${ok ? '' : ` · ${somme > P ? `${somme - P} en trop` : `${P - somme} sans itinéraire`}`}</div>`;
+  }
+  function diviser(g, vi, n) {
+    const v = g.vols[vi], pax = +v.pax || 0;
+    n = Math.round(n);
+    if (!(n >= 1 && n < pax)) return false;
+    const lettre = String.fromCharCode(65 + g.vols.length); // 2e itinéraire = B, 3e = C…
+    const copie = JSON.parse(JSON.stringify(v));
+    copie.label = `${String(v.label || 'Itinéraire').replace(/ · groupe [A-Z]$/, '')} · groupe ${lettre}`;
+    copie.pax = n; v.pax = pax - n;
+    g.vols.splice(vi + 1, 0, copie);
+    return true;
+  }
+
   function volTable(st, r, g, gi, v, vi) {
-    const et = etapes(v);
+    const { et, mo } = etat(v);
     const res = r.groupes[gi].vols[vi];
     const pts = et.map(c => c ? Calc.aeroport(c, st) : null);
+    const nAir = res && !res.err ? res.legs.length : 0, nSol = res && !res.err ? (res.solLegs || []).length : 0;
+    const resume = [nAir ? `${nAir} vol${nAir > 1 ? 's' : ''}` : '', ...MODES.slice(1).map(([k, ic, lab]) => {
+      const n = (res && res.solLegs || []).filter(l => l.mode === k).length;
+      return n ? `${n} ${ic} ${lab.toLowerCase()}` : '';
+    })].filter(Boolean).join(' + ');
     return `
       <div class="tj-vol">
         <div class="tj-vol-head"><input class="field tj-label" data-tjv="label" data-g="${gi}" data-v="${vi}" value="${esc(v.label)}" aria-label="Nom de l'itinéraire">
-          <span class="muted tj-meta">${v.pax} pass. · ${esc(F.classes[v.classe]?.label || '')} · ${v.ar ? 'aller-retour' : 'aller simple'} · <a href="#/saisie">modifier</a></span>
+          <label class="tj-pax" title="Nombre de personnes qui font cet itinéraire"><input type="number" min="0" class="field" data-tjv="pax" data-g="${gi}" data-v="${vi}" value="${v.pax}" aria-label="Passagers"> pers.</label>
+          ${+v.pax >= 2 ? `<button class="btn sm ghost no-print" data-tj="split-open" data-g="${gi}" data-v="${vi}" title="Une partie du groupe fait un autre trajet">⑂ Diviser</button>` : ''}
           <button class="icon-x" data-tj="del-vol" data-g="${gi}" data-v="${vi}" aria-label="Supprimer l'itinéraire" title="Supprimer l'itinéraire">${X}</button></div>
+        <div class="muted tj-meta">${esc(F.classes[v.classe]?.label || '')} · ${v.ar ? 'aller-retour' : 'aller simple'} · <a href="#/saisie">classe et aller-retour dans Saisie</a></div>
+        ${divise === `${gi}-${vi}` ? `<div class="tj-split no-print">
+          <span>Combien de personnes font un <b>autre trajet</b> ?</span>
+          <input type="number" min="1" max="${v.pax - 1}" class="field" data-split="${gi}-${vi}" value="${Math.max(1, Math.round(v.pax / 6))}" aria-label="Personnes du nouveau sous-groupe">
+          <span class="muted">sur ${v.pax}</span>
+          <button class="btn sm primary" data-tj="split-ok" data-g="${gi}" data-v="${vi}">Créer le sous-groupe</button>
+          <button class="btn sm ghost" data-tj="split-cancel" data-g="${gi}">Annuler</button>
+          <p class="faint">L'itinéraire est copié pour ces personnes et retiré du groupe actuel. Modifiez ensuite les segments du sous-groupe (ex. Atlanta → Indianapolis en avion au lieu du bus).</p>
+        </div>` : ''}
         <div class="table-wrap"><table class="tj-air">
-          <thead><tr><th>Étape</th><th>Ville ou aéroport</th><th>Code</th><th>Pays</th><th class="r">Segment</th><th></th></tr></thead>
+          <thead><tr><th>Étape</th><th>Ville ou aéroport</th><th>Code</th><th>Pour y aller</th><th></th></tr></thead>
           <tbody>${et.map((c, i) => {
             const a = pts[i], prev = pts[i - 1];
-            const nom = i === 0 ? 'Départ' : i === et.length - 1 ? 'Arrivée' : `Escale ${i}`;
-            const d = a && prev ? Calc.orthodromie(prev, a) + F.correctionKm : null;
-            return `<tr>
+            const nom = i === 0 ? 'Départ' : i === et.length - 1 ? 'Arrivée' : `Étape ${i}`;
+            const oblig = i > 0 && Calc.transat(prev, a); // traversée de l'Atlantique : avion obligatoire
+            const mode = i ? (oblig ? 'avion' : mo[i] || 'avion') : '', sol = !!Calc.MODES_SOL[mode];
+            const gc = a && prev ? Calc.orthodromie(prev, a) : null;
+            const d = gc == null ? null : sol ? gc * Calc.MODES_SOL[mode] : gc + F.correctionKm;
+            return `<tr class="${sol ? 'tj-sol' : ''}">
               <td class="tj-step"><span class="tj-dot ${i === 0 || i === et.length - 1 ? 'end' : ''}"></span>${nom}</td>
               <td><input class="field ac ${c && !a ? 'err' : ''}" data-ac="aeroport" data-g="${gi}" data-v="${vi}" data-e="${i}" value="${esc(affAeroport(c, st))}" placeholder="Tapez une ville…" autocomplete="off" aria-label="${nom}"></td>
-              <td class="num"><b>${esc(c)}</b></td>
-              <td class="muted">${a ? esc(PAYS[a.pays] || a.pays) : ''}</td>
-              <td class="r num muted">${d ? nf(d, 0) + ' km' : ''}</td>
-              <td>${i > 0 && i < et.length - 1 ? `<button class="icon-x" data-tj="del-stop" data-g="${gi}" data-v="${vi}" data-e="${i}" aria-label="Retirer l'escale">${X}</button>` : ''}</td></tr>`; }).join('')}</tbody>
+              <td class="num" title="${a ? esc(PAYS[a.pays] || a.pays) : ''}"><b>${esc(c)}</b>${a ? `<div class="legs">${esc(PAYS[a.pays] || a.pays)}</div>` : ''}</td>
+              <td class="tj-modecell">${oblig ? `<span class="tj-mode-lock" title="Traversée de l'Atlantique : seul l'avion est possible">✈ Avion</span>
+                  <span class="num muted tj-km">${d ? nf(d, 0) + ' km' : ''}</span>` : i ? `<select class="tj-mode m-${mode}" data-tjm="1" data-g="${gi}" data-v="${vi}" data-e="${i}" aria-label="Moyen de transport vers ${nom}" title="${sol ? `Trajet au sol : vol d'oiseau × ${nf(Calc.MODES_SOL[mode], 1)}` : `Vol : vol d'oiseau + ${F.correctionKm} km`}">
+                  ${MODES.map(([k, ic, lab]) => `<option value="${k}" ${k === mode ? 'selected' : ''}>${ic} ${lab}</option>`).join('')}</select>
+                  <span class="num muted tj-km">${d ? nf(d, 0) + ' km' : ''}</span>` : '<span class="faint">point de départ</span>'}</td>
+              <td>${i > 0 && et.length > 2 ? `<button class="icon-x" data-tj="del-stop" data-g="${gi}" data-v="${vi}" data-e="${i}" aria-label="Retirer cette étape" title="Retirer cette étape">${X}</button>` : ''}</td></tr>`; }).join('')}</tbody>
         </table></div>
-        <div class="tj-vol-foot"><button class="btn sm ghost no-print" data-tj="add-stop" data-g="${gi}" data-v="${vi}">+ Ajouter une escale</button>
-          <span class="muted">${res && !res.err ? `${res.legs.length} segment${res.legs.length > 1 ? 's' : ''} · <b class="num">${t(res.air)} tCO2e</b>` : '<span class="tj-warn">Itinéraire incomplet</span>'}</span></div>
+        <div class="tj-vol-foot"><span class="tj-btns no-print"><button class="btn sm ghost" data-tj="add-stop" data-g="${gi}" data-v="${vi}">+ Escale en avion</button>
+            <button class="btn sm ghost" data-tj="add-bus" data-g="${gi}" data-v="${vi}" title="Ajoute une étape finale rejointe en bus (ex. Atlanta → Indianapolis)">+ Finir en 🚌 bus</button></span>
+          <span class="muted">${res && !res.err ? `${resume} · <b class="num">${t(res.air + (res.sol || 0), 2)} tCO2e</b>${nSol ? ` <span class="faint">(dont ${nf(res.sol, 0)} kg au sol)</span>` : ''}` : '<span class="tj-warn">Itinéraire incomplet : choisissez chaque ville</span>'}</span></div>
       </div>`;
   }
 
@@ -170,62 +229,109 @@
     return `<option value="" ${sel ? '' : 'selected'}>Choisir…</option>` + cats.map(c => `<optgroup label="${esc(c)}">${V.modeles.filter(m => m.cat === c).map(m => `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc(m.label)} (${m.places} pl.)</option>`).join('')}</optgroup>`).join('');
   };
 
+  // ---------- Exemples de location, ajoutables en un clic ----------
+  // Lieux désignés par code d'aéroport ou par « Ville, précision » (js/aeroports.js → VILLES).
+  const EXEMPLES = {
+    kelley: [
+      ['Aéroport → campus Kelley', 'IND', 'Bloomington, Indiana (Kelley School of Business)', 'van15'],
+      ['Visite d\'entreprise à Chicago', 'Bloomington, Indiana (Kelley School of Business)', 'Chicago, Illinois', 'minivan'],
+      ['Sortie à Louisville', 'Bloomington, Indiana (Kelley School of Business)', 'Louisville, Kentucky', 'minivan_hyb']
+    ],
+    hec: [
+      ['Aéroport → HEC Montréal', 'YUL', 'Montréal, Québec (HEC Montréal)', 'van15'],
+      ['Week-end à Québec', 'Montréal, Québec (HEC Montréal)', 'Québec, Québec', 'minivan_hyb'],
+      ['Sortie à Mont-Tremblant', 'Montréal, Québec (HEC Montréal)', 'Mont-Tremblant, Québec', 'suv_inter']
+    ]
+  };
+  function trouverLieu(st, cle) {
+    const L = lieux(st);
+    return /^[A-Z]{3}$/.test(cle) ? L.find(p => p.code === cle) : L.find(p => p.label === cle);
+  }
+  function exemples(st, g) {
+    const P = Math.max(1, +g.participants || 30);
+    return (EXEMPLES[g.id] || []).map(([label, d, a, modele]) => {
+      const pd = trouverLieu(st, d), pa = trouverLieu(st, a), m = V.modeles.find(x => x.id === modele);
+      if (!pd || !pa || !m) return null;
+      const nv = Math.ceil(P / m.places);
+      const l = { label, de: pd.label, a: pa.label, deC: [pd.lat, pd.lon], aC: [pa.lat, pa.lon], km: 0, modele, nv, pers: Math.ceil(P / nv), ar: true, source: 'Hypothèse (exemple)' };
+      kmAuto(l);
+      return { l, court: `${pd.code || pd.ville} → ${pa.ville}`, m, kg: Calc.calcLocation(l, g).kg };
+    }).filter(Boolean);
+  }
+
+  const resumeLoc = (l, x, m) => {
+    if (!m) return '<span class="tj-warn">Choisissez un véhicule pour lancer le calcul.</span>';
+    if (!(+l.km > 0)) return '<span class="tj-warn">Indiquez le trajet (De / À) ou la distance.</span>';
+    const tr = l.ar ? 2 : 1;
+    return `${l.nv} × ${esc(m.label)} · ${l.pers} pers. par voiture (${x.personnes || 0} au total) · ${nf(l.km, 0)} km × ${tr} trajet${tr > 1 ? 's' : ''} × ${l.nv} voiture${l.nv > 1 ? 's' : ''} = <b>${nf(x.km || 0, 0)} km parcourus</b>`;
+  };
+  const sortiesLoc = x => `
+    <span class="tj-out" title="Carburant consommé"><small>Carburant</small>${x.bus ? 'navette' : x.qty ? `${nf(x.qty, 0)} ${x.unite}` : '–'}</span>
+    <span class="tj-out" title="Émissions par personne transportée"><small>Par personne</small>${nf(x.parPers || 0, 1)} kg</span>
+    <span class="tj-out pol" title="NOx : valeur limite de la norme (NMOG + NOx aux US et au Canada). Polluant local, hors tCO2e"><small>NOx</small>${nf(x.nox || 0, 1)} g</span>
+    <span class="tj-out pol" title="Particules fines : valeur limite de la norme. Polluant local, hors tCO2e"><small>Particules</small>${nf(x.pm || 0, 2)} g</span>
+    <span class="tj-out pol" title="Monoxyde de carbone : valeur limite de la norme. Polluant local, hors tCO2e"><small>CO</small>${nf(x.co || 0, 0)} g</span>`;
+
   function locTable(st, r, g, gi) {
     const L = g.locations || [];
     const rg = r.groupes[gi];
     const tot = (rg.loc || []).reduce((s, x) => ({ kg: s.kg + x.kg, nox: s.nox + x.nox, pm: s.pm + x.pm, co: s.co + x.co }), { kg: 0, nox: 0, pm: 0, co: 0 });
+    const deja = new Set(L.map(l => l.label));
+    const ex = exemples(st, g).filter(e => !deja.has(e.l.label));
     return `
       <div class="card mt" style="--i:${gi + 3}">
         <div class="group-head"><span class="dot" style="width:12px;height:12px;background:var(${gi ? '--c-hec' : '--c-kelley'})"></span><b>${esc(g.nom)}</b>
+          <span class="muted" style="font-size:12.5px">${L.length} trajet${L.length > 1 ? 's' : ''} en location</span>
           <span class="pill accent" style="margin-left:auto" id="tj-tot-${gi}">${t(tot.kg, 2)} tCO2e</span></div>
-        ${L.length ? `<div class="table-wrap"><table class="tj-loc">
-          <thead><tr><th>Trajet</th><th>De</th><th>À</th><th class="r">km (aller)</th><th>Véhicule</th><th class="r">Voitures</th><th class="r">Pers. / voiture</th><th>A/R</th><th>Source</th>
-            <th class="r">Carburant</th><th class="r">kgCO2e</th><th class="r">kg / pers.</th><th class="r" title="Valeur limite de la norme (NMOG + NOx aux US et au Canada)">NOx (g)</th><th class="r" title="Particules fines, valeur limite de la norme">PM (g)</th><th class="r" title="Monoxyde de carbone, valeur limite de la norme">CO (g)</th><th></th></tr></thead>
-          <tbody>${L.map((l, i) => {
-            const x = rg.loc[i] || {}, m = V.modeles.find(mm => mm.id === l.modele);
-            const trop = m && +l.pers > m.places;
-            return `<tr>
-              <td><input data-lf="label" data-g="${gi}" data-i="${i}" value="${esc(l.label)}" style="min-width:160px" placeholder="ex. Visite Chicago"></td>
-              <td><input class="ac" data-ac="lieu" data-lf="de" data-g="${gi}" data-i="${i}" value="${esc(l.de)}" placeholder="Ville…" autocomplete="off" style="min-width:150px"></td>
-              <td><input class="ac" data-ac="lieu" data-lf="a" data-g="${gi}" data-i="${i}" value="${esc(l.a)}" placeholder="Ville…" autocomplete="off" style="min-width:150px"></td>
-              <td><input type="number" min="0" class="w-num" data-lf="km" data-g="${gi}" data-i="${i}" value="${l.km || ''}" placeholder="km" title="${l.kmAuto ? `Calculé : vol d'oiseau × ${nf(V.detourRoute, 1)}. Modifiable.` : 'Distance saisie'}">${l.kmAuto ? '<div class="legs">≈ estimé</div>' : ''}</td>
-              <td><select data-lf="modele" data-g="${gi}" data-i="${i}">${modeleOptions(l.modele)}</select>${m ? `<div class="legs">${esc(m.cat)} · ${nf(m.conso, 1)} ${m.energie === 'elec' ? 'kWh' : 'L'}/100 km</div>` : ''}</td>
-              <td><input type="number" min="0" class="w-num" data-lf="nv" data-g="${gi}" data-i="${i}" value="${l.nv}"></td>
-              <td><input type="number" min="0" class="w-num ${trop ? 'err' : ''}" data-lf="pers" data-g="${gi}" data-i="${i}" value="${l.pers}" title="${trop ? `Plus que les ${m.places} places du véhicule` : ''}"></td>
-              <td><input type="checkbox" class="check" data-lf="ar" data-g="${gi}" data-i="${i}" ${l.ar ? 'checked' : ''}></td>
-              <td><input data-lf="source" data-g="${gi}" data-i="${i}" value="${esc(l.source)}" list="sources-tj" class="w-sm"></td>
-              <td class="r num" data-out="qty">${x.bus ? '<span class="faint">navette</span>' : x.qty ? `${nf(x.qty, 0)} ${x.unite}` : '–'}</td>
-              <td class="r num" data-out="kg"><b>${nf(x.kg || 0, 1)}</b></td>
-              <td class="r num" data-out="pp">${nf(x.parPers || 0, 1)}</td>
-              <td class="r num" data-out="nox">${nf(x.nox || 0, 1)}</td>
-              <td class="r num" data-out="pm">${nf(x.pm || 0, 2)}</td>
-              <td class="r num" data-out="co">${nf(x.co || 0, 0)}</td>
-              <td><button class="icon-x" data-tj="del-loc" data-g="${gi}" data-i="${i}" aria-label="Supprimer">${X}</button></td></tr>`; }).join('')}</tbody>
-          <tfoot><tr><td colspan="10">Total ${esc(g.nom.split(' (')[0])}</td><td class="r num" data-tot="kg">${nf(tot.kg, 1)}</td><td></td><td class="r num" data-tot="nox">${nf(tot.nox, 1)}</td><td class="r num" data-tot="pm">${nf(tot.pm, 2)}</td><td class="r num" data-tot="co">${nf(tot.co, 0)}</td><td></td></tr></tfoot>
-        </table></div>` : '<p class="muted" style="font-size:13px">Aucune voiture de location pour ce groupe.</p>'}
-        <button class="btn sm mt no-print" data-tj="add-loc" data-g="${gi}">+ Ajouter une location</button>
+        ${L.length ? `<div class="tj-locs">${L.map((l, i) => {
+          const x = rg.loc[i] || {}, m = V.modeles.find(mm => mm.id === l.modele);
+          const trop = m && +l.pers > m.places;
+          return `<div class="tj-lc" data-i="${i}">
+            <div class="tj-lc-top">
+              <span class="tj-lc-n">${i + 1}</span>
+              <input class="field tj-lc-label" data-lf="label" data-g="${gi}" data-i="${i}" value="${esc(l.label)}" placeholder="Nom du trajet (ex. Aéroport → campus)" aria-label="Nom du trajet">
+              <span class="tj-lc-kg num" data-out="kg"><b>${nf(x.kg || 0, 1)}</b> kgCO2e</span>
+              <button class="icon-x" data-tj="del-loc" data-g="${gi}" data-i="${i}" aria-label="Supprimer ce trajet" title="Supprimer ce trajet">${X}</button>
+            </div>
+            <div class="tj-lc-grid">
+              <label class="tj-f w2"><span>Départ</span><input class="field ac" data-ac="lieu" data-lf="de" data-g="${gi}" data-i="${i}" value="${esc(l.de)}" placeholder="Ville ou aéroport…" autocomplete="off"></label>
+              <label class="tj-f w2"><span>Arrivée</span><input class="field ac" data-ac="lieu" data-lf="a" data-g="${gi}" data-i="${i}" value="${esc(l.a)}" placeholder="Ville ou aéroport…" autocomplete="off"></label>
+              <label class="tj-f"><span>Distance aller ${l.kmAuto ? '<em>≈ estimée</em>' : ''}</span><span class="tj-unit"><input type="number" min="0" class="field" data-lf="km" data-g="${gi}" data-i="${i}" value="${l.km || ''}" placeholder="0" title="${l.kmAuto ? `Calculée : vol d'oiseau × ${nf(V.detourRoute, 1)}. Modifiable.` : 'Distance saisie'}"><i>km</i></span></label>
+              <label class="tj-f w2"><span>Véhicule${m ? ` <em>${esc(m.cat)} · ${nf(m.conso, 1)} ${m.energie === 'elec' ? 'kWh' : 'L'}/100 km</em>` : ''}</span><select class="field" data-lf="modele" data-g="${gi}" data-i="${i}">${modeleOptions(l.modele)}</select></label>
+              <label class="tj-f"><span>Voitures</span><input type="number" min="0" class="field" data-lf="nv" data-g="${gi}" data-i="${i}" value="${l.nv}"></label>
+              <label class="tj-f"><span>Pers. / voiture${m ? ` <em>max ${m.places}</em>` : ''}</span><input type="number" min="0" class="field ${trop ? 'err' : ''}" data-lf="pers" data-g="${gi}" data-i="${i}" value="${l.pers}" title="${trop ? `Plus que les ${m.places} places du véhicule` : ''}"></label>
+              <label class="tj-f tj-chk"><input type="checkbox" class="check" data-lf="ar" data-g="${gi}" data-i="${i}" ${l.ar ? 'checked' : ''}><span>Aller-retour</span></label>
+              <label class="tj-f w2"><span>Source</span><input class="field" data-lf="source" data-g="${gi}" data-i="${i}" value="${esc(l.source)}" list="sources-tj"></label>
+            </div>
+            <div class="tj-lc-res muted" data-out="resume">${resumeLoc(l, x, m)}</div>
+            <div class="tj-lc-out" data-out="outs">${sortiesLoc(x)}</div>
+          </div>`; }).join('')}</div>
+          <div class="tj-loc-tot num"><span>Total ${esc(g.nom.split(' (')[0])}</span><span data-tot="kg"><b>${nf(tot.kg, 1)}</b> kgCO2e</span><span class="faint" data-tot="pol">NOx ${nf(tot.nox, 1)} g · particules ${nf(tot.pm, 2)} g · CO ${nf(tot.co, 0)} g</span></div>`
+        : `<p class="muted tj-empty">Aucune voiture de location pour l'instant. Ajoutez un des exemples ci-dessous pour voir le calcul, puis adaptez-le (véhicule, nombre de voitures, distance), ou partez d'une fiche vide.</p>`}
+        ${ex.length ? `<div class="tj-ex no-print"><span class="tj-ex-t">Exemples à ajouter en un clic</span>
+          ${ex.map(e => `<button class="tj-ex-b" data-tj="add-ex" data-g="${gi}" data-label="${esc(e.l.label)}"><b>${esc(e.l.label)}</b><small>${esc(e.court)} · ${e.l.nv} × ${esc(e.m.label)} · ${nf(e.l.km, 0)} km · ≈ ${nf(e.kg, 0)} kgCO2e</small></button>`).join('')}</div>` : ''}
+        <button class="btn sm mt no-print" data-tj="add-loc" data-g="${gi}">+ Fiche vide</button>
       </div>`;
   }
 
-  // Mise à jour des chiffres d'une ligne sans tout redessiner (le curseur reste dans la case).
+  // Mise à jour des chiffres d'une fiche sans tout redessiner (le curseur reste dans la case).
   function refreshLoc(view, ctx) {
     const st = ctx.st(), r = Calc.calculer(st);
     st.groupes.forEach((g, gi) => {
       const rg = r.groupes[gi];
-      const rows = view.querySelectorAll(`.tj-loc [data-lf="label"][data-g="${gi}"]`);
-      rows.forEach(inp => {
-        const i = +inp.dataset.i, x = rg.loc[i] || {}, tr = inp.closest('tr');
-        const set = (k, v) => { const c = tr.querySelector(`[data-out="${k}"]`); if (c) c.innerHTML = v; };
-        set('qty', x.bus ? '<span class="faint">navette</span>' : x.qty ? `${nf(x.qty, 0)} ${x.unite}` : '–');
-        set('kg', `<b>${nf(x.kg || 0, 1)}</b>`); set('pp', nf(x.parPers || 0, 1));
-        set('nox', nf(x.nox || 0, 1)); set('pm', nf(x.pm || 0, 2)); set('co', nf(x.co || 0, 0));
-        const l = g.locations[i], m = V.modeles.find(mm => mm.id === l.modele), p = tr.querySelector('[data-lf="pers"]');
+      view.querySelectorAll(`.tj-lc [data-lf="label"][data-g="${gi}"]`).forEach(inp => {
+        const i = +inp.dataset.i, x = rg.loc[i] || {}, box = inp.closest('.tj-lc');
+        const l = g.locations[i], m = V.modeles.find(mm => mm.id === l.modele);
+        const set = (k, v) => { const c = box.querySelector(`[data-out="${k}"]`); if (c) c.innerHTML = v; };
+        set('kg', `<b>${nf(x.kg || 0, 1)}</b> kgCO2e`); set('resume', resumeLoc(l, x, m)); set('outs', sortiesLoc(x));
+        const p = box.querySelector('[data-lf="pers"]');
         if (p) p.classList.toggle('err', !!(m && +l.pers > m.places));
       });
       const tot = (rg.loc || []).reduce((s, x) => ({ kg: s.kg + x.kg, nox: s.nox + x.nox, pm: s.pm + x.pm, co: s.co + x.co }), { kg: 0, nox: 0, pm: 0, co: 0 });
       const pill = view.querySelector(`#tj-tot-${gi}`); if (pill) pill.textContent = `${t(tot.kg, 2)} tCO2e`;
-      const card = pill && pill.closest('.card');
-      if (card) [['kg', 1], ['nox', 1], ['pm', 2], ['co', 0]].forEach(([k, d]) => { const c = card.querySelector(`[data-tot="${k}"]`); if (c) c.textContent = nf(tot[k], d); });
+      const card = pill && pill.closest('.card'); if (!card) return;
+      const k = card.querySelector('[data-tot="kg"]'); if (k) k.innerHTML = `<b>${nf(tot.kg, 1)}</b> kgCO2e`;
+      const p = card.querySelector('[data-tot="pol"]'); if (p) p.textContent = `NOx ${nf(tot.nox, 1)} g · particules ${nf(tot.pm, 2)} g · CO ${nf(tot.co, 0)} g`;
     });
   }
 
@@ -249,8 +355,12 @@
         const q = el.value;
         openMenu(el, chercher(aeroports(s), q, [['ville', 1], ['nom', 2], ['code', 1]]),
           a => `<span class="ac-code">${esc(a.code)}</span><span><b>${surligne(a.ville, q)}</b> · ${surligne(a.nom, q)}<small>${esc(PAYS[a.pays] || a.pays)}</small></span>`,
-          a => { const v = s.groupes[+el.dataset.g].vols[+el.dataset.v], arr = etapes(v); arr[+el.dataset.e] = a.code; setEtapes(v, arr); done(); });
+          a => { const v = s.groupes[+el.dataset.g].vols[+el.dataset.v], { et, mo } = etat(v); et[+el.dataset.e] = a.code; setEtat(v, et, mo); done(); });
         return;
+      }
+      if (el.dataset.tjm) {
+        const v = s.groupes[+el.dataset.g].vols[+el.dataset.v], { et, mo } = etat(v);
+        mo[+el.dataset.e] = el.value; setEtat(v, et, mo); done(); return;
       }
       if (el.dataset.tjv === 'label') { s.groupes[+el.dataset.g].vols[+el.dataset.v].label = el.value; ctx.save(); return; }
       const f = el.dataset.lf; if (!f) return;
@@ -271,7 +381,23 @@
       refreshLoc(view, ctx);
     });
 
+    function splitOk(gi, vi) {
+      const s = st(), g = s.groupes[+gi], f = document.querySelector(`#view [data-split="${gi}-${vi}"]`);
+      if (!f) return;
+      if (!diviser(g, +vi, +f.value)) { ctx.toast(`Indiquez un nombre entre 1 et ${(+g.vols[+vi].pax || 0) - 1}`); f.focus(); return; }
+      divise = null; done(); ctx.toast(`Sous-groupe créé : ${Math.round(+f.value)} personne${+f.value > 1 ? 's' : ''}`);
+    }
+
+    // Passagers d'un itinéraire : recalcul quand on quitte la case (le curseur ne saute pas pendant la saisie).
+    view.addEventListener('change', e => {
+      const el = e.target; if (el.dataset.tjv !== 'pax') return;
+      st().groupes[+el.dataset.g].vols[+el.dataset.v].pax = Math.max(0, Math.round(+el.value || 0)); done();
+    });
+
     view.addEventListener('keydown', e => {
+      const sp = e.target.dataset && e.target.dataset.split;
+      if (sp && e.key === 'Enter') { e.preventDefault(); const [gi, vi] = sp.split('-'); splitOk(gi, vi); return; }
+      if (sp && e.key === 'Escape') { divise = null; done(); return; }
       if (!menu || e.target !== owner) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); moveMenu(1); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); moveMenu(-1); }
@@ -285,10 +411,10 @@
       setTimeout(() => {
         if (menu && owner === el) closeMenu();
         if (!el.isConnected) return;
-        const s = st(), v = s.groupes[+el.dataset.g].vols[+el.dataset.v], arr = etapes(v), i = +el.dataset.e;
+        const s = st(), v = s.groupes[+el.dataset.g].vols[+el.dataset.v], { et: arr, mo } = etat(v), i = +el.dataset.e;
         const txt = el.value.trim().toUpperCase();
-        if (!txt) { if (arr[i]) { arr[i] = ''; setEtapes(v, arr); done(); } return; }
-        if (/^[A-Z]{3}$/.test(txt) && Calc.aeroport(txt, s) && txt !== arr[i]) { arr[i] = txt; setEtapes(v, arr); done(); return; }
+        if (!txt) { if (arr[i]) { arr[i] = ''; setEtat(v, arr, mo); done(); } return; }
+        if (/^[A-Z]{3}$/.test(txt) && Calc.aeroport(txt, s) && txt !== arr[i]) { arr[i] = txt; setEtat(v, arr, mo); done(); return; }
         if (txt !== affAeroport(arr[i], s).toUpperCase()) el.value = affAeroport(arr[i], s); // saisie abandonnée
       }, 120);
     });
@@ -298,14 +424,37 @@
       const b = e.target.closest('[data-tj]'); if (!b) return;
       const s = st(), g = s.groupes[+b.dataset.g];
       switch (b.dataset.tj) {
-        case 'add-stop': { const v = g.vols[+b.dataset.v], arr = etapes(v); arr.splice(arr.length - 1, 0, ''); setEtapes(v, arr); done(); break; }
-        case 'del-stop': { const v = g.vols[+b.dataset.v], arr = etapes(v); arr.splice(+b.dataset.e, 1); setEtapes(v, arr); done(); break; }
-        case 'add-vol': g.vols.push({ label: 'Nouvel itinéraire', route: '', etapes: ['', ''], pax: g.participants, classe: 'eco', ar: true, source: 'Hypothèse' }); done(); break;
-        case 'del-vol': if (confirm('Supprimer cet itinéraire ?')) { g.vols.splice(+b.dataset.v, 1); done(); } break;
-        case 'add-loc': (g.locations ||= []).push({ label: '', de: '', a: '', km: 0, modele: '', nv: 1, pers: 4, ar: true, source: 'Hypothèse' }); done(); break;
+        case 'add-stop': { const v = g.vols[+b.dataset.v], { et, mo } = etat(v); et.splice(et.length - 1, 0, ''); mo.splice(mo.length - 1, 0, 'avion'); setEtat(v, et, mo); done(); focusVide(view, b.dataset.g, b.dataset.v); break; }
+        case 'add-bus': { const v = g.vols[+b.dataset.v], { et, mo } = etat(v); et.push(''); mo.push('autocar'); setEtat(v, et, mo); done(); focusVide(view, b.dataset.g, b.dataset.v); break; }
+        case 'del-stop': { const v = g.vols[+b.dataset.v], { et, mo } = etat(v), i = +b.dataset.e; et.splice(i, 1); mo.splice(i, 1); mo[0] = ''; setEtat(v, et, mo); done(); break; }
+        case 'add-vol': g.vols.push({ label: 'Nouvel itinéraire', route: '', etapes: ['', ''], modes: ['', 'avion'], pax: g.participants, classe: 'eco', ar: true, source: 'Hypothèse' }); done(); break;
+        case 'del-vol': if (confirm('Supprimer cet itinéraire ?')) { g.vols.splice(+b.dataset.v, 1); divise = null; done(); } break;
+        case 'split-open': {
+          divise = `${b.dataset.g}-${b.dataset.v}`; done();
+          setTimeout(() => { const f = document.querySelector(`#view [data-split="${divise}"]`); if (f) { f.focus(); f.select(); } }, 0);
+          break;
+        }
+        case 'split-cancel': divise = null; done(); break;
+        case 'split-ok': splitOk(b.dataset.g, b.dataset.v); break;
+        case 'add-loc': {
+          const P = Math.max(1, +g.participants || 4), m = V.modeles.find(x => x.id === 'minivan'), nv = Math.ceil(P / m.places);
+          (g.locations ||= []).push({ label: '', de: '', a: '', km: 0, modele: m.id, nv, pers: Math.ceil(P / nv), ar: true, source: 'Hypothèse' }); done();
+          setTimeout(() => { const f = document.querySelector(`#view [data-lf="de"][data-g="${b.dataset.g}"][data-i="${g.locations.length - 1}"]`); if (f) f.focus(); }, 0);
+          break;
+        }
+        case 'add-ex': { const e = exemples(s, g).find(x => x.l.label === b.dataset.label); if (e) { (g.locations ||= []).push(e.l); done(); } break; }
         case 'del-loc': g.locations.splice(+b.dataset.i, 1); done(); break;
       }
     });
+  }
+
+  // Après l'ajout d'une étape : curseur dans la première case vide de l'itinéraire.
+  function focusVide(view, gi, vi) {
+    setTimeout(() => {
+      // render() remplace le nœud #view : on cherche dans le nouveau.
+      const f = [...document.querySelectorAll(`#view [data-ac="aeroport"][data-g="${gi}"][data-v="${vi}"]`)].find(x => !x.value);
+      if (f) f.focus();
+    }, 0);
   }
 
   window.Trajets = { view, bind };

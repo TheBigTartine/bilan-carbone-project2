@@ -273,8 +273,8 @@
       const coef = (F.classes[v.classe] || F.classes.eco).coef;
       const f = l => (st.rf ? l.tranche.avec : l.tranche.sans);
       const legs = x.legs.map(l => ({ l, kg: l.d * f(l) * coef }));
-      const it = Calc.itineraire(v.route, st);
-      const direct = it.direct.d * f(it.direct) * coef;
+      const dir = x.direct || Calc.itineraire(v.route, st).direct; // segments en avion seulement
+      const direct = dir.d * f(dir) * coef;
       rows.push({ gi, label: `${g.nom.split(' (')[0]} · ${v.label}`, legs, direct, sum: legs.reduce((a, b) => a + b.kg, 0), n: legs.length });
     }));
     if (!rows.length) return '';
@@ -422,6 +422,15 @@
         const n = m.parVehicule ? Math.ceil(x.pax / Math.max(1, x.occ || 1)) : x.pax;
         return `<tr><td>${esc(x.label)}</td><td>${esc(m.label)}</td><td class="r num">${nf(m.f, 4)}</td>
           <td class="calc num">${x.km} km × ${tr} × ${n} ${m.parVehicule ? 'véh.' : 'pers.'} × ${nf(m.f, 4)}</td><td class="r num"><b>${nf(R.terr[i], 1)}</b></td></tr>`;
+      }).join('') + R.vols.map((x, vi) => (x.solLegs || []).map(l => {
+        // Segment au sol saisi dans un itinéraire (onglet Trajets)
+        const p = x.pax, tr = x.trajets, n = F.terrestre[l.mode]?.parVehicule ? `${Math.ceil(p / 4)} véh.` : `${p} pers.`;
+        return `<tr><td>${esc(g.vols[vi].label)} : ${l.from.code} → ${l.to.code}</td><td>${esc(l.label)}</td><td class="r num">${nf(l.f, 4)}</td>
+          <td class="calc num">${nf(l.kmSol, 0)} km × ${tr} × ${n} × ${nf(l.f, 4)}</td><td class="r num"><b>${nf(l.kg, 1)}</b></td></tr>`;
+      }).join('')).join('') + (g.locations || []).map((l, i) => {
+        const x = R.loc[i]; if (!x || !x.kg) return '';
+        return `<tr><td>${esc(l.label || `${l.de} → ${l.a}`)}</td><td>Location · ${esc(x.modele ? x.modele.label : 'navette')}</td><td class="r num"></td>
+          <td class="calc num">${nf(x.km, 0)} km véhicule</td><td class="r num"><b>${nf(x.kg, 1)}</b></td></tr>`;
       }).join('');
       return `<div class="card mt" style="--i:${gi}">
         <h3 style="margin-bottom:10px"><i class="dot" style="background:${GC[gi]}"></i> ${esc(g.nom)} · ${R.participants} participants</h3>
