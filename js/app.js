@@ -460,7 +460,7 @@
           <p>Pour chaque segment de vol : <code>émissions = (distance orthodromique + ${F.correctionKm} km) × facteur ADEME de la tranche × coefficient de classe × passagers × trajets</code>.</p>
           <p class="mt">Pour chaque trajet terrestre : <code>km × trajets × passagers × facteur</code>, ou, pour une voiture, <code>km × trajets × nombre de véhicules × facteur par véhicule</code>.</p>
           <p class="mt">Le poids d'une correspondance est l'écart entre l'itinéraire réel et un vol direct théorique entre le premier et le dernier aéroport.</p>
-          <p class="mt">Les + ${F.correctionKm} km viennent de l'arrêté du 10 avril 2012 sur l'information GES des prestations de transport : la distance entre deux aéroports est la distance orthodromique augmentée de 95 km.</p></div>
+          <p class="mt">Les + ${F.correctionKm} km viennent de la réglementation sur l'information CO2 des prestations de transport (article L. 1431-3 du code des transports et guide méthodologique du ministère de l'Écologie) : la distance entre deux aéroports est la distance orthodromique augmentée de 95 km.</p></div>
         </div>
         <div class="grid grid-2">
         <div class="card" style="--i:1"><h2 class="section">Facteurs aériens (kgCO2e par passager.km)</h2>
@@ -474,8 +474,8 @@
           <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th><th>Source</th></tr></thead>
           <tbody>${Object.values(F.terrestre).map(m => `<tr><td>${m.label}</td><td class="r num">${nf(m.f, 4)}</td><td class="muted">${m.parVehicule ? 'par véhicule' : 'par passager'}</td><td class="muted">${esc(m.source || '')}</td></tr>`).join('')}</tbody></table></div></div>
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
-          <p>L'ADEME ne distingue pas les classes. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
-          <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 1)}</li>`).join('')}</ul></div></div></div>
+          <p>L'ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Chaque coefficient est le rapport entre le facteur DEFRA de la classe et celui du siège moyen. La classe économique reste à 1, c'est-à-dire au facteur ADEME. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
+          <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 2)}</li>`).join('')}</ul></div></div></div>
         <div><h2 class="section mt2" id="calculs">Calculs détaillés, segment par segment</h2>
           <p class="muted" style="font-size:13px">Toutes les étapes avec les données saisies (${st.rf ? 'avec' : 'sans'} traînées). Chaque résultat peut être vérifié à la calculatrice.</p>
           ${Viz.detail(st, Calc.calculer(st))}</div>

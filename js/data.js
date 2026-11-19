@@ -6,7 +6,8 @@
 window.FACTEURS = {
   version: 'ADEME Base Empreinte, facteurs « Avion passagers » 2023 (vérifiés le 19/11/2026 sur data.ademe.fr)',
   // Correction : distance orthodromique + 95 km (détours, attentes, approche).
-  // Source : arrêté du 10 avril 2012 (information GES des prestations de transport), repris par l'ADEME.
+  // Source : ministère de l'Écologie, guide « Information CO2 des prestations de transport » (application de
+  // l'article L. 1431-3 du code des transports). Article réglementaire exact à confirmer sur Légifrance.
   correctionKm: 95,
   // kgCO2e par passager.km, selon la distance du segment (Base Empreinte, « Avion passagers », 2023).
   // L'ADEME donne un facteur par taille d'avion. Choix du pôle : 101-220 sièges (type A320) jusqu'à 5 000 km,
@@ -20,14 +21,17 @@ window.FACTEURS = {
     { id: 'moyen', label: '2 000 – 5 000 km (101-220 sièges)', max: 5000, avec: 0.167, sans: 0.0918, ademe: [43747, 43748] },
     { id: 'long', label: '> 5 000 km (plus de 220 sièges)', max: Infinity, avec: 0.151, sans: 0.0832, ademe: [43773, 43774] }
   ],
-  // Coefficient par classe. ADEME ne distingue pas les classes : ces ratios viennent du DEFRA / DESNZ (UK),
-  // « Greenhouse gas reporting: conversion factors 2025 », vols long-courriers.
+  // Coefficient par classe. ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen.
+  // Source : DESNZ (UK), « Greenhouse gas reporting: conversion factors 2025 », vols long-courriers, kgCO2e/passager.km :
+  // siège moyen 0,15282 ; éco 0,11704 ; premium 0,18726 ; affaires 0,33940 ; première 0,46814.
+  // Coefficient = facteur de la classe ÷ siège moyen (ex. affaires : 0,33940 ÷ 0,15282 = 2,22).
+  // L'éco reste à 1 (facteur ADEME tel quel) : choix prudent, qui ne baisse pas le bilan.
   // C'est une autre convention, donc ils ne servent qu'en analyse complémentaire (voir Méthodologie).
   classes: {
     eco: { label: 'Économique', coef: 1 },
-    premium: { label: 'Premium éco', coef: 1.6 },
-    affaires: { label: 'Affaires', coef: 2.9 },
-    premiere: { label: 'Première', coef: 4.0 }
+    premium: { label: 'Premium éco', coef: 1.23 },
+    affaires: { label: 'Affaires', coef: 2.22 },
+    premiere: { label: 'Première', coef: 3.06 }
   },
   // Modes terrestres. parVehicule = facteur au km par véhicule (divisé ensuite par le nombre d'occupants).
   // source = élément de la Base Empreinte (identifiant), ou mention « à vérifier » quand le pôle n'a pas encore de source.

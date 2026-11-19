@@ -37,7 +37,7 @@
     { terme: 'Code IATA', motifs: ['codes IATA', 'code IATA', 'IATA'], def: 'Code à 3 lettres attribué à chaque aéroport par l’association internationale du transport aérien : MRS = Marseille, CDG = Paris-Charles de Gaulle, YUL = Montréal, IND = Indianapolis.' },
     { terme: 'A/R', motifs: ['A/R', 'aller-retour', 'allers-retours'], def: 'Aller-retour : le trajet est compté deux fois.' },
     { terme: 'Classe de voyage', motifs: ['coefficients par classe', 'coefficient de classe', 'classe économique', 'Premium éco'], def:
-      'Un siège en classe affaires occupe plus de place dans l’avion : on lui attribue une plus grande part des émissions du vol (×2,9 environ). L’ADEME ne fait pas cette distinction.' },
+      'Un siège en classe affaires occupe plus de place dans l’avion : on lui attribue une plus grande part des émissions du vol (×2,2 environ par rapport à un siège moyen). L’ADEME ne fait pas cette distinction.' },
     { terme: 'DEFRA', motifs: ['DEFRA'], def: 'Ministère britannique de l’environnement. Il publie ses propres facteurs d’émission, dont des coefficients par classe. C’est une <b>autre convention</b> que l’ADEME : à ne pas mélanger dans le bilan principal.' },
     { terme: 'Convention', motifs: ['conventions', 'convention'], def: 'Un ensemble de choix de calcul (source des facteurs, prise en compte des traînées…). Deux résultats calculés avec des conventions différentes ne se comparent ni ne s’additionnent.' },
     { terme: 'Périmètre', motifs: ['périmètre principal', 'périmètre'], def: 'Ce que le bilan inclut. Ici : les vols et les déplacements terrestres. Exclus : hébergement, repas, achats sur place (possible en analyse complémentaire).' },
