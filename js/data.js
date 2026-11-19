@@ -7,7 +7,8 @@ window.FACTEURS = {
   version: 'ADEME Base Empreinte, facteurs « Avion passagers » 2023 (vérifiés le 19/11/2026 sur data.ademe.fr)',
   // Correction : distance orthodromique + 95 km (détours, attentes, approche).
   // Source : ministère de l'Écologie, guide « Information CO2 des prestations de transport » (application de
-  // l'article L. 1431-3 du code des transports). Article réglementaire exact à confirmer sur Légifrance.
+  // l'article L. 1431-3 du code des transports). Texte réglementaire probable : arrêté du 10 avril 2012 (toujours
+  // en vigueur, art. 3 modifié en 2017). À confirmer : https://www.legifrance.gouv.fr/loda/id/LEGIARTI000034554255/2017-06-01
   correctionKm: 95,
   // kgCO2e par passager.km, selon la distance du segment (Base Empreinte, « Avion passagers », 2023).
   // L'ADEME donne un facteur par taille d'avion. Choix du pôle : 101-220 sièges (type A320) jusqu'à 5 000 km,
@@ -52,8 +53,12 @@ window.FACTEURS = {
   },
   // Repères pédagogiques (affichés avec leur source, sans les additionner au bilan).
   reperes: {
-    objectifParisKg: 2000, // ≈ 2 tCO2e / personne / an : budget compatible avec l'Accord de Paris (2050)
-    tgvParisMarseilleKg: 2 * 750 * 0.00293 // aller-retour Paris–Marseille en TGV ≈ 750 km
+    // ≈ 2 tCO2e / personne / an en 2050, compatible avec l'Accord de Paris.
+    // Source : ADEME, « Agir pour la transition », page « Calculer son empreinte carbone ».
+    objectifParisKg: 2000,
+    // Aller-retour Paris–Marseille en TGV : 742 km par trajet (SNCF Connect, page du trajet Paris–Marseille)
+    // × facteur TGV ADEME 43256.
+    tgvParisMarseilleKg: 2 * 742 * 0.00293
   },
   // Coût historique d'un plant (devis d'octobre 2025, Centre forestier : 1 283,75 € HT / 250 arbres).
   coutPlantHistorique: 1283.75 / 250
