@@ -48,15 +48,12 @@
           x.legs.forEach(l => add(`${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'air', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label }));
           return;
         }
-        // Avant : itinéraire saisi, en fantôme. Après : itinéraire avec les leviers cochés.
-        const it = Calc.itineraire(v.route, st);
+        // Avant : itinéraire saisi, en fantôme. Après : itinéraire calculé par le moteur avec les leviers cochés
+        // (js/calc.js, calcVol : « apres » pour les vols, « trainLegs » pour les segments passés en TGV).
         x.legs.forEach(l => add(`g${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'ghost', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label }));
-        let legs = (opts.scen.direct && x.legs.length > 1) ? [it.direct] : x.legs;
-        legs.forEach(l => {
-          const fr = l.from.pays === 'FR' && l.to.pays === 'FR';
-          if (opts.scen.trainFr && fr && legs.length > 1) add(`t${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'train', a: l.from, b: l.to, kg: l.gc * 1.2 * F.terrestre.tgv.f * n, d: l.gc * 1.2, tr: 'TGV' });
-          else add(`${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'air', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label });
-        });
+        const y = Calc.calcVol(v, st, { ...opts.scen, rf: st.rf });
+        (y.trainLegs || []).forEach(l => add(`t${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'train', a: l.from, b: l.to, kg: l.kg, d: l.kmSol, tr: 'TGV' }));
+        (y.apres || x.legs).forEach(l => add(`${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'air', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label }));
       });
     });
     if (!segs.size) return '<p class="muted">Aucun vol valide à afficher : vérifier les codes aéroport.</p>';
@@ -352,7 +349,7 @@
   // ---------------------------------------------------------------------
   const demarche = active => `<div class="steps">${[
     ['1', 'Mesurer', 'Bilan carbone documenté (ce site)'], ['2', 'Éviter', 'Supprimer un déplacement ou un segment'],
-    ['3', 'Réduire', 'Vol direct, train, navette, classe éco'], ['4', 'Contribuer', 'Financer des projets pour le résiduel']
+    ['3', 'Réduire', 'Meilleur itinéraire, train, navette, classe éco'], ['4', 'Contribuer', 'Financer des projets pour le résiduel']
   ].map(([n, h, p], i) => `<div class="step ${active.includes(i) ? 'on' : ''}" style="--i:${i}"><span class="step-n">${n}</span><b>${h}</b><small>${p}</small></div>`).join('<span class="step-arrow" aria-hidden="true">›</span>')}</div>`;
 
   const troisResultats = (red, res, eur) => `<div class="three">

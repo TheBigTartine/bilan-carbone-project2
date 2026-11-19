@@ -133,8 +133,8 @@ window.HYPOTHESES = {
       locations: []
     }
   ],
-  scenarios: { direct: false, trainFr: false, carToBus: false, eco: false },
-  prixTonne: 30,
+  scenarios: { trainFr: false, itineraire: false, carToBus: false, eco: false }, // leviers : js/leviers.js (Quentin)
+  prixTonne: 35, // Label Bas-Carbone, prix moyen (I4CE, juin 2025) ; autres repères dans js/leviers.js
   coutPlant: +(1283.75 / 250).toFixed(2),
   aeroportsPerso: {}
 };

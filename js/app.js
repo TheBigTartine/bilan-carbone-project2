@@ -326,40 +326,135 @@
   }
 
   // =====================================================================
-  // Vue : Scénarios
+  // Vue : Scénarios. Responsable : Quentin.
+  // Lignes aériennes, TGV et repères de prix : js/leviers.js ; vérifications et sources : docs/leviers-reduction.md.
   // =====================================================================
+  const LV = window.LEVIERS || { liaisons: [], tgv: {}, prix: { max: 300, reperes: [] } };
+  // Ordre = ordre d'application dans la cascade : d'abord le TGV, puis l'itinéraire est optimisé à partir de Paris.
   const SCEN = [
-    { id: 'direct', titre: 'Vols directs plutôt qu’avec escale', court: 'Vols directs', desc: 'Remplace chaque itinéraire par un vol direct entre le premier et le dernier aéroport. À vérifier : la ligne directe doit exister aux dates du voyage.' },
-    { id: 'trainFr', titre: 'Pré-acheminement en TGV', court: 'TGV', desc: 'Les segments en avion à l’intérieur de la France (ex. MRS → CDG) sont faits en TGV (distance rail ≈ orthodromie × 1,2).' },
-    { id: 'carToBus', titre: 'Voitures et taxis remplacés par une navette', court: 'Navettes', desc: 'Les trajets en voiture thermique ou en taxi passent en autocar ou navette collective.' },
-    { id: 'eco', titre: 'Tous en classe économique', court: 'Classe éco', desc: 'N’a d’effet que si des passagers sont saisis dans une autre classe (coefficients DEFRA).' }
+    { id: 'trainFr', titre: 'TGV jusqu’à l’aéroport Paris-CDG', court: 'TGV',
+      desc: 'Les vols à l’intérieur de la France (ex. Marseille → Paris-CDG) sont remplacés par le TGV jusqu’à la gare de l’aéroport.',
+      qui: 'les responsables des Study Tours, à la réservation (billet unique « Train + Air » avec Air France)' },
+    { id: 'itineraire', titre: 'Meilleur itinéraire existant', court: 'Itinéraire',
+      desc: 'Même départ, même arrivée, pas plus de vols : l’itinéraire le moins émetteur parmi les lignes vérifiées qui volent toute l’année (escale plus courte ou vol sans escale).',
+      qui: 'les responsables des Study Tours, au choix de la compagnie et de l’escale' },
+    { id: 'carToBus', titre: 'Voitures et taxis remplacés par une navette', court: 'Navettes',
+      desc: 'Les trajets en voiture thermique, en taxi ou en voiture de location passent en autocar ou navette collective.',
+      qui: 'les responsables des Study Tours, pour les transferts sur place' },
+    { id: 'eco', titre: 'Tous en classe économique', court: 'Classe éco',
+      desc: 'N’a d’effet que si des passagers sont saisis dans une autre classe (coefficients britanniques DESNZ, autre convention que l’ADEME : analyse complémentaire).',
+      qui: 'les responsables des Study Tours, à la réservation' }
   ];
+  const PILL = {
+    verifie: '<span class="pill accent">Vérifié</span>',
+    a_verifier: '<span class="pill warn">À vérifier</span>',
+    a_decider: '<span class="pill warn">À décider</span>',
+    deja: '<span class="pill">Déjà dans le bilan</span>',
+    sans_objet: '<span class="pill">Sans objet</span>'
+  };
+  const nomCourt = g => esc(String(g.nom || '').split(' (')[0]);
+  const fleches = codes => codes.join(' → ');
+  const codesVols = legs => legs.length ? [legs[0].from.code, ...legs.map(l => l.to.code)] : [];
+  const descLigne = (a, b) => {
+    const l = Calc.liaison(a, b);
+    return `${a} → ${b}${l && l.cie ? ` (${esc(l.cie)})` : ''}${l && l.note ? ` : ${esc(l.note)}` : ''}`;
+  };
+
+  // Effet d'un levier seul : gain avec et sans traînées, statut, itinéraires modifiés et sources.
+  function levierInfo(s) {
+    const gain = rf => Calc.calculer(st, { rf }).total - Calc.calculer(st, { rf, [s.id]: true }).total;
+    const g = { avec: gain(true), sans: gain(false) };
+    const actif = Math.max(g.avec, g.sans) > 0.5;
+    const lignes = [], sources = new Set(), pistes = [];
+    let statut = actif ? 'verifie' : 'sans_objet';
+    if (s.id === 'trainFr' || s.id === 'itineraire') {
+      st.groupes.forEach(gr => gr.vols.forEach(v => {
+        const a = Calc.calcVol(v, st, { rf: st.rf }), b = Calc.calcVol(v, st, { rf: st.rf, [s.id]: true });
+        if (a.err || !a.legs.length) return;
+        const avant = codesVols(a.legs), apres = codesVols(b.apres);
+        const train = b.trainLegs.map(l => `${l.from.code} → ${l.to.code} en TGV`);
+        if (train.length || avant.join() !== apres.join()) {
+          lignes.push(`<b>${nomCourt(gr)}</b> : ${fleches(avant)} devient ${[...train, fleches(apres)].filter(Boolean).join(', puis ')}`);
+          if (train.length && LV.tgv.source) sources.add(`TGV : ${esc(LV.tgv.texte || '')} Source : ${esc(LV.tgv.source)}`);
+          if (s.id === 'itineraire') b.apres.forEach(l => { const x = Calc.liaison(l.from.code, l.to.code); if (x) sources.add(`${descLigne(l.from.code, l.to.code)}. Source : ${esc(x.source)}`); });
+        }
+        // Pistes : meilleur itinéraire si l'on accepte aussi les lignes saisonnières ou à vérifier (non compté).
+        if (s.id === 'itineraire' && a.legs.length > 1) {
+          const from = a.legs[0].from, to = a.legs[a.legs.length - 1].to;
+          const sur = Calc.meilleurItineraire(from, to, a.legs.length, st, st.rf, false);
+          const tout = Calc.meilleurItineraire(from, to, a.legs.length, st, st.rf, true);
+          if (tout && (!sur || tout.kg < sur.kg - 1)) {
+            const kgAvant = a.legs.reduce((x, l) => x + l.d * (st.rf ? l.tranche.avec : l.tranche.sans), 0);
+            const n = (+v.pax || 0) * (v.ar ? 2 : 1);
+            const pourquoi = tout.legs.map(l => Calc.liaison(l.from.code, l.to.code)).filter(x => x && !(x.statut === 'verifie' && x.toutLAnnee))
+              .map(x => `${x.route.replace('-', ' → ')} : ${x.statut === 'verifie' ? '' : 'à vérifier'}${x.statut !== 'verifie' && x.note ? ', ' : ''}${esc(x.note || '')}`);
+            pistes.push(`<b>${nomCourt(gr)}</b> : ${fleches(codesVols(tout.legs))}, environ − ${t((kgAvant - tout.kg) * n)} t (${pourquoi.join(' ; ')})`);
+          }
+        }
+      }));
+      if (s.id === 'trainFr' && !actif) {
+        const deja = st.groupes.some(gr => gr.vols.some(v => (Calc.calcVol(v, st, { rf: st.rf }).solLegs || []).some(l => l.mode === 'train' && l.from.pays === 'FR' && l.to.pays === 'FR')));
+        if (deja) statut = 'deja';
+      }
+    } else if (actif) statut = s.id === 'eco' ? 'a_decider' : 'a_verifier';
+    return { g, actif, statut, lignes, sources: [...sources], pistes };
+  }
+
+  function levierHtml(s) {
+    const x = levierInfo(s);
+    const [g1, g2] = st.rf ? [x.g.avec, x.g.sans] : [x.g.sans, x.g.avec];
+    const autre = st.rf ? 'sans' : 'avec';
+    return `
+          <div class="scenario"><div><label class="switch"><input type="checkbox" data-scen="${s.id}" ${st.scenarios[s.id] ? 'checked' : ''}><span class="track"></span><span>${s.titre}</span></label>
+            <div class="desc lv-indent">${s.desc}</div></div>
+            <div class="gain num" style="text-align:right">${x.actif ? `− ${t(g1)} t<div class="faint" style="font-weight:500;font-size:11.5px">${autre} traînées : − ${t(g2)} t</div>` : '<span class="faint">aucun effet</span>'}</div>
+            <div class="lv-detail lv-indent">
+              <div>${PILL[x.statut]} <span class="faint">Qui décide : ${s.qui}.</span></div>
+              ${x.lignes.length ? `<div>${x.lignes.join('<br>')}</div>` : ''}
+              ${x.pistes.length ? `<div class="faint">Piste selon les dates, non comptée : ${x.pistes.join('<br>')}</div>` : ''}
+              ${x.sources.length ? `<details><summary class="faint" style="cursor:pointer">Lignes utilisées et sources</summary><div class="faint" style="margin-top:4px">${x.sources.join('<br>')}</div></details>` : ''}
+            </div></div>`;
+  }
+
+  // Repère de prix correspondant au prix choisi (ou texte pour un prix libre).
+  const prixSource = p => {
+    const r = (LV.prix.reperes || []).find(x => x.prix === p);
+    if (r) return `<b>${esc(r.label)}</b> : ${esc(r.desc)} Source : ${esc(r.source)}.`;
+    const b = LV.prix.plancher;
+    return `Prix libre, à justifier avec le pôle compensation.${b ? ` Pour comparer : crédits volontaires tous standards ≈ ${b.prix} €/t (${esc(b.source)}).` : ''}`;
+  };
+  const budgets = () => {
+    const res = rf => Calc.calculer(st, { ...st.scenarios, rf }).total;
+    return { res: res(st.rf), autre: res(!st.rf) };
+  };
+
   function vScenarios() {
     const base = Calc.calculer(st);
     const sc = Calc.calculer(st, st.scenarios);
     const red = base.total - sc.total;
     const residuel = sc.total;
     const budget = residuel / 1000 * st.prixTonne;
+    const budgetAutre = budgets().autre / 1000 * st.prixTonne;
     const plants = st.coutPlant > 0 ? Math.floor(budget / st.coutPlant) : 0;
+    const conv = st.rf ? 'avec' : 'sans', autre = st.rf ? 'sans' : 'avec';
     return `
       <div class="head"><div><div class="page-title">Mesurer, éviter, réduire, puis contribuer</div><h1 style="font-size:28px">Simulateur de scénarios</h1></div>${seg()}</div>
       <div class="card" style="--i:0;margin-bottom:12px;padding:12px 14px">${Viz.demarche(red > 0.5 ? [0, 2, 3] : [0, 3])}</div>
       <div class="grid grid-3">
-        <div class="card tilt" style="--i:0"><div class="kpi-label">Bilan mesuré</div><div class="kpi-value num" data-count="${t(base.total)}">${t(base.total)} <small>tCO2e</small></div><div class="kpi-sub">Situation saisie, sans aucune mesure</div></div>
-        <div class="card tilt" style="--i:1"><div class="kpi-label"><span class="dot" style="background:var(--accent)"></span>Réduction potentielle</div><div class="kpi-value num" style="color:var(--accent)" data-count="${t(red)}">${t(red)} <small>tCO2e</small></div><div class="kpi-sub">${pct(base.total ? red / base.total : 0)} du bilan, si les mesures cochées sont appliquées</div></div>
+        <div class="card tilt" style="--i:0"><div class="kpi-label">Bilan mesuré</div><div class="kpi-value num" data-count="${t(base.total)}">${t(base.total)} <small>tCO2e</small></div><div class="kpi-sub">Situation saisie, sans aucune mesure (${conv} traînées)</div></div>
+        <div class="card tilt" style="--i:1"><div class="kpi-label"><span class="dot" style="background:var(--accent)"></span>Réduction potentielle</div><div class="kpi-value num" style="color:var(--accent)" data-count="${t(red)}">${t(red)} <small>tCO2e</small></div><div class="kpi-sub">${pct(base.total ? red / base.total : 0)} du bilan, si les responsables des Study Tours appliquent les mesures cochées</div></div>
         <div class="card tilt" style="--i:2"><div class="kpi-label">Émissions résiduelles</div><div class="kpi-value num" data-count="${t(residuel)}">${t(residuel)} <small>tCO2e</small></div><div class="kpi-sub">Ce qui reste à couvrir par une contribution</div></div>
       </div>
       <div class="grid grid-main mt">
         <div class="card" style="--i:3"><h2 class="section">Leviers de réduction</h2>
-          ${SCEN.map(s => { const alone = base.total - Calc.calculer(st, { [s.id]: true }).total; return `
-          <div class="scenario"><div><label class="switch"><input type="checkbox" data-scen="${s.id}" ${st.scenarios[s.id] ? 'checked' : ''}><span class="track"></span><span>${s.titre}</span></label><div class="desc" style="margin-left:56px">${s.desc}</div></div>
-            <div class="gain num">${alone > 0.5 ? '− ' + t(alone) + ' t' : '<span class="faint">aucun effet</span>'}</div></div>`; }).join('')}
-          <p class="faint" style="font-size:12px;margin-top:10px">Le gain affiché pour chaque levier est calculé seul. Les leviers combinés ne s'additionnent pas toujours (ex. vol direct et TGV portent sur le même segment).</p>
+          <p class="muted sub" style="margin-top:0">Ce sont des <b>recommandations</b> : le pôle ne réserve pas les voyages. Seules des lignes qui existent sont utilisées (vérifiées le ${esc(LV.maj || '')}, horaires à confirmer aux dates du voyage).</p>
+          ${SCEN.map(levierHtml).join('')}
+          <p class="faint" style="font-size:12px;margin-top:10px">Le gain affiché pour chaque levier est calculé seul. Combinés, les leviers ne s'additionnent pas : le TGV s'applique d'abord, puis l'itinéraire est optimisé à partir de Paris. La cascade montre l'effet cumulé.</p>
         </div>
         <div class="stack">
           <div class="card" style="--i:4"><h2 class="section">Cascade : du bilan mesuré au résiduel</h2>${Viz.cascade(st, SCEN)}</div>
           <div class="card" style="--i:5"><h2 class="section">Sur la carte : avant / après</h2>
-            ${st.scenarios.direct || st.scenarios.trainFr ? '' : '<p class="muted sub" style="margin:0 0 8px">Active « vols directs » ou « TGV » pour voir les itinéraires changer.</p>'}
+            ${st.scenarios.itineraire || st.scenarios.trainFr ? '' : '<p class="muted sub" style="margin:0 0 8px">Active « TGV » ou « Meilleur itinéraire existant » pour voir les itinéraires changer.</p>'}
             ${Viz.carte(st, base, { scen: st.scenarios, H: 420 })}</div>
         </div>
       </div>
@@ -367,12 +462,15 @@
         <div class="grid grid-2">
           <div>
             <div class="range-row"><span class="muted">Prix retenu par tonne</span><b class="num" id="prix-out">${st.prixTonne} € / tCO2e</b></div>
-            <input type="range" min="5" max="200" step="5" value="${st.prixTonne}" data-range="prixTonne" aria-label="Prix par tonne">
+            <input type="range" min="1" max="${LV.prix.max || 300}" step="1" value="${st.prixTonne}" data-range="prixTonne" aria-label="Prix par tonne">
+            <div class="no-print" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px" aria-label="Repères de prix">${(LV.prix.reperes || []).map(r => `<button type="button" class="pill${st.prixTonne === r.prix ? ' accent' : ''}" style="border:0;cursor:pointer" data-prix="${r.prix}">${esc(r.label)} · ${r.prix} €</button>`).join('')}</div>
+            <p class="faint" id="prix-src" style="font-size:12px;margin:6px 0 0">${prixSource(st.prixTonne)}</p>
+            <p class="faint" style="font-size:12px;margin:4px 0 0">Le prix définitif se fixe avec le pôle compensation, selon le projet réellement financé.</p>
             <div class="range-row mt"><span class="muted">Coût d'un plant (devis oct. 2025 : ${nf(F.coutPlantHistorique, 2)} €)</span><b class="num" id="plant-out">${nf(st.coutPlant, 2)} €</b></div>
             <input type="range" min="1" max="30" step="0.25" value="${st.coutPlant}" data-range="coutPlant" aria-label="Coût d'un plant">
           </div>
           <div class="stack">
-            <div><div class="kpi-label">Budget de contribution</div><div class="kpi-value num" id="budget-out">${eur(budget)}</div><div class="kpi-sub">${t(residuel)} t résiduelles × ${st.prixTonne} €</div></div>
+            <div><div class="kpi-label">Budget de contribution</div><div class="kpi-value num" id="budget-out">${eur(budget)}</div><div class="kpi-sub">${t(residuel)} t résiduelles (${conv} traînées) × <span id="prix-sub">${st.prixTonne}</span> €. ${autre[0].toUpperCase() + autre.slice(1)} traînées : <span id="budget-autre">${eur(budgetAutre)}</span></div></div>
             <div><div class="kpi-label">Plants finançables avec ce budget</div><div class="kpi-value num" id="plants-out">${plants.toLocaleString('fr-FR')}</div><div class="kpi-sub">Fournitures seulement (plants, protections, tuteurs), sans entretien ni suivi</div></div>
           </div>
         </div>
@@ -381,6 +479,20 @@
       </div>`;
   }
   function aScenarios(view) {
+    // Met à jour le bloc « Contribution » sans tout redessiner.
+    const majPrix = () => {
+      const b = budgets();
+      const budget = b.res / 1000 * st.prixTonne;
+      $('#prix-out').textContent = `${st.prixTonne} € / tCO2e`;
+      $('#prix-sub').textContent = st.prixTonne;
+      $('#prix-src').innerHTML = prixSource(st.prixTonne);
+      $('#plant-out').textContent = `${nf(st.coutPlant, 2)} €`;
+      $('#budget-out').textContent = eur(budget);
+      $('#budget-autre').textContent = eur(b.autre / 1000 * st.prixTonne);
+      const tb = $$('.three-box b'); if (tb[2]) tb[2].textContent = eur(budget);
+      $('#plants-out').textContent = Math.floor(budget / st.coutPlant).toLocaleString('fr-FR');
+      $$('[data-prix]', view).forEach(el => el.classList.toggle('accent', +el.dataset.prix === st.prixTonne));
+    };
     view.addEventListener('change', e => {
       const s = e.target.dataset.scen; if (!s) return;
       st.scenarios[s] = e.target.checked; save();
@@ -390,13 +502,13 @@
     view.addEventListener('input', e => {
       const k = e.target.dataset.range; if (!k) return;
       st[k] = +e.target.value; save();
-      const res = Calc.calculer(st, st.scenarios).total;
-      const budget = res / 1000 * st.prixTonne;
-      $('#prix-out').textContent = `${st.prixTonne} € / tCO2e`;
-      $('#plant-out').textContent = `${nf(st.coutPlant, 2)} €`;
-      $('#budget-out').textContent = eur(budget);
-      const tb = $$('.three-box b'); if (tb[2]) tb[2].textContent = eur(budget);
-      $('#plants-out').textContent = Math.floor(budget / st.coutPlant).toLocaleString('fr-FR');
+      majPrix();
+    });
+    view.addEventListener('click', e => {
+      const b = e.target.closest('[data-prix]'); if (!b) return;
+      st.prixTonne = +b.dataset.prix; save();
+      const r = $('[data-range="prixTonne"]', view); if (r) r.value = st.prixTonne;
+      majPrix();
     });
   }
 
@@ -408,7 +520,8 @@
     const [k, h] = r.groupes;
     const top = k.total >= h.total ? k : h, other = top === k ? h : k;
     const leviers = SCEN.map(s => ({ s, g: r.total - Calc.calculer(st, { [s.id]: true }).total })).filter(x => x.g > 0.5).sort((a, b) => b.g - a.g);
-    const prix = [15, 30, 60, 100];
+    // Repères de prix sourcés (js/leviers.js) ; le pôle compensation fixe le prix définitif.
+    const reperes = (window.LEVIERS && LEVIERS.prix.reperes) || [];
     const date = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
     const table = g => `<table><thead><tr><th>Poste</th><th class="r">tCO2e</th><th class="r">Part</th></tr></thead><tbody>
       <tr><td>Vols (équivalent direct)</td><td class="r num">${t(g.air - g.corr, 2)}</td><td class="r num">${pct(g.total ? (g.air - g.corr) / g.total : 0)}</td></tr>
@@ -451,7 +564,8 @@
         ${leviers.length ? `<ul>${leviers.map(x => `<li><b>${x.s.titre}</b> : − ${t(x.g)} tCO2e (${pct(x.g / r.total)}).</li>`).join('')}</ul>` : '<p>Aucun levier simulé n’a d’effet sur les données actuelles.</p>'}
         <p class="q">Quel budget serait nécessaire pour financer une contribution correspondant aux émissions calculées ?</p>
         <p>Selon le prix retenu par tonne (le pôle compensation doit fixer et justifier ce prix) :</p>
-        <table style="max-width:460px"><thead><tr><th>Prix par tonne</th><th class="r">Budget pour ${t(r.total)} t</th></tr></thead><tbody>${prix.map(p => `<tr><td>${p} € / tCO2e</td><td class="r num">${eur(r.total / 1000 * p)}</td></tr>`).join('')}</tbody></table>
+        <table style="max-width:560px"><thead><tr><th>Repère de prix par tonne</th><th class="r">Budget pour ${t(r.total)} t (${st.rf ? 'avec' : 'sans'} traînées)</th></tr></thead><tbody>${reperes.map(x => `<tr><td>${x.prix} € / tCO2e · ${esc(x.label)}</td><td class="r num">${eur(r.total / 1000 * x.prix)}</td></tr>`).join('')}</tbody></table>
+        <p class="faint" style="font-size:12px">Sources : ${reperes.map(x => `${esc(x.label)} : ${esc(x.source)}`).join(' ; ')}.</p>
 
         <h2>3. Méthode de calcul</h2>
         ${Viz.chaine()}
