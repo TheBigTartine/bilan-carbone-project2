@@ -13,6 +13,8 @@
   const ETAPES = ['Qui es-tu ?', 'Ton itinéraire', 'Ton billet', 'Vérifie'];
   const nomCourt = g => g.nom.split(' (')[0];
   const ville = code => window.Trajets ? Trajets.villeAeroport(code) : code;
+  // Équivalents parlants : km seul en voiture thermique (ADEME 43791) et repas avec du bœuf (ADEME Impact CO2).
+  const equiv = kg => `<b class="num">${nf(kg / window.FACTEURS.terrestre.voiture.f, 0)} km</b> seul en voiture thermique ou <b class="num">${nf(kg / window.FACTEURS.reperes.repasBoeufKg, 0)}</b> repas avec du bœuf`;
 
   // =====================================================================
   // Accueil
@@ -80,7 +82,8 @@
         <dt>Moyenne de ${esc(nomCourt(e.groupe))}</dt><dd class="num">${t(e.moyenne, 2)} t par étudiant</dd>
       </dl>
       <p class="emp-phrase">${Math.abs(ecart) < 5 ? 'Autant que la moyenne de ton groupe.' : `${t(Math.abs(ecart), 2)} t ${ecart < 0 ? 'de moins' : 'de plus'} que la moyenne de ton groupe.`}
-        C'est <b>${nf(e.mois, 0)} mois</b> du budget de 2 t par an compatible avec l'Accord de Paris, ou <b>${nf(e.tgv, 0)} allers-retours Paris–Marseille en TGV</b>.</p>
+        C'est <b>${nf(e.mois, 0)} mois</b> du budget de 2 t par an compatible avec l'Accord de Paris, ou <b>${nf(e.tgv, 0)} allers-retours Paris–Marseille en TGV</b>.
+        Ou encore ${equiv(e.total)}.</p>
       <div class="badges">${b.liste.length ? b.liste.map(x => `<span class="badge-jeu">${esc(x)}</span>`).join('') : `<span class="muted">Pas encore de badge : un segment en train ou en autocar, ou moins d'escales, en donne un.</span>`}</div>
       <p class="emp-points"><b class="num">${nf(b.points, 0)}</b> point${b.points > 1 ? 's' : ''} <span class="muted">(kg de CO2e évités par rapport au trajet prévu, tout en avion)</span></p>`;
   }
@@ -159,6 +162,7 @@
           <div class="page-title">Bilan carbone des deux voyages · ${st.rf ? 'avec' : 'sans'} traînées</div>
           <div class="hero-value num" data-count="${t(r.total)}">${t(r.total)} <small>tCO2e</small></div>
           <div class="hero-sub"><span class="pill accent">${t(r.parEtudiant, 2)} t par étudiant</span></div>
+          <p class="hero-eq">C'est autant que ${equiv(r.total)}.</p>
           <a class="btn primary mv-cta" href="#/mon-trajet">${moi ? 'Modifier mon trajet' : 'Saisir mon trajet'}</a>
           ${moi ? `<p class="muted mv-deja">Trajet envoyé par ${esc(moi.prenom)} ${esc(moi.initiale)}. depuis ce téléphone.</p>` : ''}
         </div>

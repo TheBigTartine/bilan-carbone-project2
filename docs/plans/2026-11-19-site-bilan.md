@@ -274,7 +274,26 @@ But : finir les irritants restants. Points : G1 à G4, C2, D2.
 | `js/app.js` | Sommaire et sections repliables dans Méthode ; budget rappelé en haut de Scénarios |
 
 Critères de fin : voir la spec, phase 7.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 7 (écrit le 19/11/2026 sur `f1de883`)
+
+0. **G1 déjà fait** : les boutons « Importer et remplacer » et « Importer et ajouter » existent depuis la phase 4. Rien à faire.
+1. **G2 / C2 : classe et aller-retour dans Trajets** (`js/trajets.js:193`). La ligne « Économique · aller-retour · classe et aller-retour dans Saisie » devient deux réglages sur la fiche de l'itinéraire : une liste « Classe » (`data-tjv="classe"`, les classes de `FACTEURS.classes`) et une case « Aller-retour » (`data-tjv="ar"`). Un changement enregistre et recalcule la fiche (même chemin que les passagers). Le lien vers Saisie disparaît. Hauteur au toucher ≥ 40 px (règle de la phase 2). Test : Kelley passé en aller simple → 172,4 − la moitié des vols Kelley ; remis en aller-retour → 172,4 t.
+2. **G3 / D2 : Méthode en sections repliables** (`js/app.js`, `vMethode`). Chaque carte devient un bloc `<details>` dont le titre est le `<summary>`. Au téléphone (≤ 760 px), les blocs sont repliés ; à l'ordinateur, ils sont ouverts comme aujourd'hui. En haut, un sommaire : un bouton par section ; le toucher ouvre la section et y descend (boutons, pas de liens `#`, qui changeraient d'onglet). Aucun texte de la Méthode ne change. Critère : la page repliée tient sous 2 500 px de haut à 375 px.
+3. **G4 : budget rappelé en haut de Scénarios** (`js/app.js`, `vScenarios` et `majPrix`). Une ligne dans le bandeau du haut : « Budget de contribution pour ce qui reste : X € (Y € la tonne) », mise à jour quand on change le prix, comme le bloc du bas.
+4. **Style** (`css/style.css`, à la suite des règles de la Méthode ; prévenir Maxime) : flèche du `<summary>`, sommaire en pastilles qui passent à la ligne, rien de plus large que 375 px.
+5. **Équivalents CO2 plus parlants** (demande de Théo du 19/11/2026). Deux nouveaux repères dans `FACTEURS.reperes` (`js/data.js`), avec leur source en commentaire :
+   - km en voiture thermique, seul dans la voiture : facteur déjà dans le site (ADEME 43791, 0,256 kgCO2e par km) ;
+   - repas avec du bœuf : 4,97 kgCO2e par repas (ADEME, Impact CO2, Agribalyse 3.2 : 150 g de bavette, légumes, dessert, pain ; impactco2.fr/outils/alimentation/repasavecduboeuf, lu le 19/11/2026).
+   Affichés en une phrase « soit X km en voiture ou X repas avec du bœuf » : sur la carte « Mon empreinte » (accueil et écran « C'est enregistré »), sous le total de la grande carte de l'accueil, et dans le bandeau du total de la Synthèse (`js/app.js:114`). Test : 2 865 kg → 11 191 km et 576 repas.
+6. **Versions** : `?v=` à `2026-11-19u`.
+
+Contrôles :
+- script de recalcul (aller simple / aller-retour depuis Trajets ; équivalents de 2 865 kg et du total) ;
+- aperçu à 375 px : Trajets (liste et case), Méthode (hauteur repliée, sommaire qui ouvre et descend, tous les blocs s'ouvrent), Scénarios (budget du haut = budget du bas après changement de prix) ;
+- ordinateur : Méthode ouverte comme avant ; 7 onglets en avant et en arrière, console sans erreur.
+
+Message de commit : « Phase 7 de l'audit : classe dans Trajets, Méthode repliable, budget en haut ».
 ### STOP — fin de la phase 7
 
 ## Phase 8 — Visite guidée (en dernier, sur le site fini)

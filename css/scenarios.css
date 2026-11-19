@@ -11,6 +11,8 @@
 .sc-hero-sub { color: var(--text-2); font-size: 14px; max-width: 46ch; }
 .sc-hero-sub b { color: var(--text); }
 .sc-hero-note { font-size: 12px; margin-top: 12px; max-width: 52ch; }
+.sc-hero-budget { font-size: 14px; color: var(--text-2); margin: 12px 0 0; }
+.sc-hero-budget b { color: var(--text); }
 .sc-cta {
   margin-top: 14px; border: 0; cursor: pointer; padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 13px;
   background: var(--accent); color: var(--on-accent); transition: transform .2s var(--spring), filter .2s;

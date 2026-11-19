@@ -112,6 +112,7 @@
             <div class="page-title">Bilan global · ${st.rf ? 'avec' : 'sans'} traînées</div>
             <div class="hero-value num" data-count="${t(r.total)}">${t(r.total)} <small>tCO2e</small></div>
             <div class="hero-sub"><span class="pill accent">${t(r.parEtudiant, 2)} t par étudiant</span><span>soit ${nf(repere, 1)} an${repere >= 2 ? 's' : ''} de budget carbone « Accord de Paris » (2 t/an)</span></div>
+            <p class="hero-eq">Le bilan des deux voyages, c'est autant que <b class="num">${nf(r.total / F.terrestre.voiture.f, 0)} km</b> seul en voiture thermique ou <b class="num">${nf(r.total / F.reperes.repasBoeufKg, 0)}</b> repas avec du bœuf.</p>
             <div class="group-bar">
               ${r.groupes.map((g, i) => `<div class="row"><span class="muted">${esc(g.nom.split(' (')[0])}</span><div class="track"><div class="fill" style="width:${g.total / max * 100}%;background:${gc[i]};animation-delay:${200 + i * 120}ms"></div></div><span class="num r" style="text-align:right;font-weight:600">${t(g.total)} t</span></div>`).join('')}
             </div>
@@ -627,6 +628,7 @@
           <p class="sc-hero-sub">soit <b>${pct(base.total ? montre / base.total : 0)}</b> du bilan, ${nf(montre / 1000 / n, 2)} t de moins par étudiant${F.reperes && F.reperes.objectifParisKg ? `, ou ${nf(montre / F.reperes.objectifParisKg, 0)} ans du budget carbone annuel compatible avec l’Accord de Paris (2 t par personne)` : ''}.</p>
           ${choisi ? (pot > red + 0.5 ? `<button type="button" class="sc-cta" data-all>Ajouter les autres leviers vérifiés : jusqu’à − ${t(pot)} t</button>` : '')
             : (pot > 0.5 ? `<button type="button" class="sc-cta" data-all>Appliquer ces leviers</button>` : '')}
+          <p class="sc-hero-budget">Budget de contribution pour ce qui reste : <b class="num" id="budget-haut">${eur(budget)}</b> (<span id="prix-haut">${st.prixTonne}</span> € la tonne)</p>
           <p class="faint sc-hero-note">Ce sont des recommandations : le pôle ne réserve pas les voyages, les responsables des Study Tours décident. Chiffres ${conv} traînées.</p>
         </div>
         <div class="sc-bars" role="img" aria-label="Bilan aujourd’hui ${t(base.total)} tonnes, avec les leviers ${t(choisi ? residuel : base.total - pot)} tonnes">
@@ -690,6 +692,8 @@
       $('#prix-src').innerHTML = prixSource(st.prixTonne);
       $('#plant-out').textContent = `${nf(st.coutPlant, 2)} €`;
       $('#budget-out').textContent = eur(budget);
+      $('#budget-haut').textContent = eur(budget);
+      $('#prix-haut').textContent = st.prixTonne;
       $('#budget-autre').textContent = eur(b.autre / 1000 * st.prixTonne);
       const tb = $$('.three-box b'); if (tb[2]) tb[2].textContent = eur(budget);
       $('#plants-out').textContent = Math.floor(budget / st.coutPlant).toLocaleString('fr-FR');
@@ -855,6 +859,31 @@
       </div>`;
   }
 
+  // Méthode : chaque section devient un bloc repliable (replié au téléphone, ouvert à l'ordinateur),
+  // avec un sommaire en haut. Les textes ne changent pas.
+  function aMethode(view) {
+    const page = $('.method', view); if (!page) return;
+    const ouvert = matchMedia('(min-width: 761px)').matches;
+    const secs = [...page.querySelectorAll('h2.section')].filter(h => h.parentElement.firstElementChild === h);
+    const titres = secs.map((h, i) => {
+      const bloc = h.parentElement, d = document.createElement('details');
+      d.className = bloc.className + ' meth-sec'; d.setAttribute('style', bloc.getAttribute('style') || ''); d.id = 'm-' + i; d.open = ouvert;
+      const sum = document.createElement('summary'); sum.appendChild(h);
+      d.appendChild(sum); while (bloc.firstChild) d.appendChild(bloc.firstChild);
+      bloc.replaceWith(d);
+      return h.textContent;
+    });
+    const som = document.createElement('nav');
+    som.className = 'meth-som'; som.setAttribute('aria-label', 'Sommaire de la méthode');
+    som.innerHTML = titres.map((x, i) => `<button type="button" data-sec="${i}">${esc(x)}</button>`).join('');
+    page.before(som);
+    som.addEventListener('click', e => {
+      const b = e.target.closest('[data-sec]'); if (!b) return;
+      const d = $('#m-' + b.dataset.sec, view); d.open = true;
+      d.scrollIntoView({ behavior: calm() ? 'auto' : 'smooth', block: 'start' });
+    });
+  }
+
   // ---------- Routeur ----------
   // Accueil « Mon voyage » et formulaire « Saisir mon trajet » (js/accueil.js).
   // Onglet Trajets (js/trajets.js) : onglet du pôle. Il lit et modifie le même état que l'onglet Saisie.
@@ -864,7 +893,7 @@
     'mon-trajet': [() => Accueil.form(ctx), v => Accueil.bindForm(v, ctx)],
     trajets: [() => Trajets.view(ctx), v => Trajets.bind(v, ctx)],
     synthese: [vSynthese, aSynthese], saisie: [vSaisie, aSaisie], scenarios: [vScenarios, aScenarios],
-    rapport: [vRapport, aRapport], methode: [vMethode, () => {}]
+    rapport: [vRapport, aRapport], methode: [vMethode, aMethode]
   };
   const route = () => { const h = location.hash.replace(/^#\/?/, ''); return ROUTES[h] ? h : 'accueil'; };
 

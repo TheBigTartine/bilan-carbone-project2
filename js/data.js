@@ -59,7 +59,10 @@ window.FACTEURS = {
     objectifParisKg: 2000,
     // Aller-retour Paris–Marseille en TGV : 742 km par trajet (SNCF Connect, page du trajet Paris–Marseille)
     // × facteur TGV ADEME 43256.
-    tgvParisMarseilleKg: 2 * 742 * 0.00293
+    tgvParisMarseilleKg: 2 * 742 * 0.00293,
+    // Repas avec du bœuf : 4,97 kgCO2e (150 g de bavette, légumes, dessert, pain).
+    // Source : ADEME, Impact CO2, données Agribalyse 3.2, impactco2.fr/outils/alimentation/repasavecduboeuf (lu le 19/11/2026).
+    repasBoeufKg: 4.97
   },
   // Coût historique d'un plant (devis d'octobre 2025, Centre forestier : 1 283,75 € HT / 250 arbres).
   coutPlantHistorique: 1283.75 / 250

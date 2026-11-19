@@ -190,7 +190,9 @@
           <label class="tj-pax" title="Nombre de personnes qui font cet itinéraire"><input type="number" min="0" class="field" data-tjv="pax" data-g="${gi}" data-v="${vi}" value="${v.pax}" aria-label="Passagers"> pers.</label>
           ${+v.pax >= 2 ? `<button class="btn sm ghost no-print" data-tj="split-open" data-g="${gi}" data-v="${vi}" title="Une partie du groupe fait un autre trajet">⑂ Diviser</button>` : ''}
           <button class="icon-x" data-tj="del-vol" data-g="${gi}" data-v="${vi}" aria-label="Supprimer l'itinéraire" title="Supprimer l'itinéraire">${X}</button></div>
-        <div class="muted tj-meta">${esc(F.classes[v.classe]?.label || '')} · ${v.ar ? 'aller-retour' : 'aller simple'} · <a href="#/saisie">classe et aller-retour dans Saisie</a></div>
+        <div class="tj-meta tj-reglages">
+          <label class="tj-classe"><span>Classe</span><select class="field" data-tjv="classe" data-g="${gi}" data-v="${vi}" aria-label="Classe de voyage">${Object.entries(F.classes).map(([k, c]) => `<option value="${k}"${(v.classe || 'eco') === k ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}</select></label>
+          <label class="tj-ar"><input type="checkbox" class="check" data-tjv="ar" data-g="${gi}" data-v="${vi}" ${v.ar ? 'checked' : ''}><span>Aller-retour</span></label></div>
         ${divise === `${gi}-${vi}` ? `<div class="tj-split no-print">
           <span>Combien de personnes font un <b>autre trajet</b> ?</span>
           <input type="number" min="1" max="${v.pax - 1}" class="field" data-split="${gi}-${vi}" value="${Math.max(1, Math.round(v.pax / 6))}" aria-label="Personnes du nouveau sous-groupe">
@@ -400,8 +402,10 @@
 
     // Passagers d'un itinéraire : recalcul quand on quitte la case (le curseur ne saute pas pendant la saisie).
     view.addEventListener('change', e => {
-      const el = e.target; if (el.dataset.tjv !== 'pax') return;
-      st().groupes[+el.dataset.g].vols[+el.dataset.v].pax = Math.max(0, Math.round(+el.value || 0)); done();
+      const el = e.target, v = el.dataset.tjv && st().groupes[+el.dataset.g].vols[+el.dataset.v];
+      if (el.dataset.tjv === 'pax') { v.pax = Math.max(0, Math.round(+el.value || 0)); done(); }
+      else if (el.dataset.tjv === 'classe') { v.classe = el.value; done(); }
+      else if (el.dataset.tjv === 'ar') { v.ar = el.checked; done(); }
     });
 
     view.addEventListener('keydown', e => {

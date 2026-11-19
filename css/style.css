@@ -455,6 +455,18 @@ p.sub { font-size: 12.5px; margin: -6px 0 10px; }
 .grid-2 > .card .viz { max-height: 380px; }
 .report { max-width: 1180px; }
 .method .grid { align-items: start; }
+/* Méthode repliable (phase 7) : sommaire en pastilles et titre de section cliquable. */
+.meth-som { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+.meth-som button { min-height: 40px; padding: 6px 14px; border-radius: 999px; border: .5px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-align: left; }
+.meth-sec > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 10px; }
+.meth-sec > summary::-webkit-details-marker { display: none; }
+.meth-sec > summary::after { content: "›"; margin-left: auto; font-size: 22px; color: var(--text-3); transition: transform .3s ease-in-out; }
+.meth-sec[open] > summary::after { transform: rotate(90deg); }
+.meth-sec > summary h2.section { margin: 0; }
+.meth-sec[open] > summary { margin-bottom: 12px; }
+.meth-sec { scroll-margin-top: 16px; }
+.hero-eq { margin: 10px 0 0; font-size: 13.5px; color: var(--text-2); }
+.hero-eq b { color: var(--text); }
 
 @media (max-width: 1250px) {
   .dash-top { grid-template-columns: 1fr; }
