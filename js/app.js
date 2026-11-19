@@ -328,21 +328,28 @@
   // =====================================================================
   // Vue : Scénarios. Responsable : Quentin.
   // Lignes aériennes, TGV et repères de prix : js/leviers.js ; vérifications et sources : docs/leviers-reduction.md.
+  // Mise en page : css/scenarios.css. La page suit trois étapes : 1. choisir les leviers,
+  // 2. voir le trajet changer, 3. financer ce qui reste.
   // =====================================================================
   const LV = window.LEVIERS || { liaisons: [], tgv: {}, prix: { max: 300, reperes: [] } };
-  // Ordre = ordre d'application dans la cascade : d'abord le TGV, puis l'itinéraire est optimisé à partir de Paris.
+  // Icônes (couleur = currentColor).
+  const ICO = {
+    train: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c-4 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>',
+    avion: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>',
+    route: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18.5C6 12 18 12.5 18 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-dasharray=".1 4.4"/><circle cx="6" cy="18.5" r="3"/><circle cx="18" cy="5.5" r="3"/></svg>',
+    bus: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>',
+    voiture: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>',
+    siege: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18v3h3v-3h10v3h3v-6H4zm15-8h3v3h-3zM2 10h3v3H2zm15 3H7V5c0-1.1.9-2 2-2h6c1.1 0 2 .9 2 2v8z"/></svg>'
+  };
+  // Ordre = ordre d'application (cascade) : d'abord le TGV, puis l'itinéraire est optimisé à partir de Paris.
   const SCEN = [
-    { id: 'trainFr', titre: 'TGV jusqu’à l’aéroport Paris-CDG', court: 'TGV',
-      desc: 'Les vols à l’intérieur de la France (ex. Marseille → Paris-CDG) sont remplacés par le TGV jusqu’à la gare de l’aéroport.',
+    { id: 'trainFr', titre: 'TGV jusqu’à l’aéroport Paris-CDG', court: 'TGV', icone: 'train', couleur: 'var(--c-ground)',
       qui: 'les responsables des Study Tours, à la réservation (billet unique « Train + Air » avec Air France)' },
-    { id: 'itineraire', titre: 'Meilleur itinéraire existant', court: 'Itinéraire',
-      desc: 'Même départ, même arrivée, pas plus de vols : l’itinéraire le moins émetteur parmi les lignes vérifiées qui volent toute l’année (escale plus courte ou vol sans escale).',
+    { id: 'itineraire', titre: 'Meilleur itinéraire existant', court: 'Itinéraire', icone: 'route', couleur: 'var(--c-corr)',
       qui: 'les responsables des Study Tours, au choix de la compagnie et de l’escale' },
-    { id: 'carToBus', titre: 'Voitures et taxis remplacés par une navette', court: 'Navettes',
-      desc: 'Les trajets en voiture thermique, en taxi ou en voiture de location passent en autocar ou navette collective.',
+    { id: 'carToBus', titre: 'Navette au lieu des voitures', court: 'Navettes', icone: 'bus', couleur: 'var(--c-kelley)',
       qui: 'les responsables des Study Tours, pour les transferts sur place' },
-    { id: 'eco', titre: 'Tous en classe économique', court: 'Classe éco',
-      desc: 'N’a d’effet que si des passagers sont saisis dans une autre classe (coefficients britanniques DESNZ, autre convention que l’ADEME : analyse complémentaire).',
+    { id: 'eco', titre: 'Tous en classe économique', court: 'Classe éco', icone: 'siege', couleur: 'var(--c-hec)',
       qui: 'les responsables des Study Tours, à la réservation' }
   ];
   const PILL = {
@@ -350,22 +357,23 @@
     a_verifier: '<span class="pill warn">À vérifier</span>',
     a_decider: '<span class="pill warn">À décider</span>',
     deja: '<span class="pill">Déjà dans le bilan</span>',
-    sans_objet: '<span class="pill">Sans objet</span>'
+    sans_objet: '<span class="pill">Pas concerné aujourd’hui</span>'
   };
   const nomCourt = g => esc(String(g.nom || '').split(' (')[0]);
-  const fleches = codes => codes.join(' → ');
+  const ville = p => String(p.nom || p.code).split(/[-–]/)[0].trim();
   const codesVols = legs => legs.length ? [legs[0].from.code, ...legs.map(l => l.to.code)] : [];
   const descLigne = (a, b) => {
     const l = Calc.liaison(a, b);
     return `${a} → ${b}${l && l.cie ? ` (${esc(l.cie)})` : ''}${l && l.note ? ` : ${esc(l.note)}` : ''}`;
   };
+  const couleurGroupe = g => g.id === 'hec' ? 'var(--c-hec)' : 'var(--c-kelley)';
 
-  // Effet d'un levier seul : gain avec et sans traînées, statut, itinéraires modifiés et sources.
+  // Effet d'un levier seul : gain avec et sans traînées, statut, phrase simple, itinéraires modifiés, pistes et sources.
   function levierInfo(s) {
     const gain = rf => Calc.calculer(st, { rf }).total - Calc.calculer(st, { rf, [s.id]: true }).total;
     const g = { avec: gain(true), sans: gain(false) };
     const actif = Math.max(g.avec, g.sans) > 0.5;
-    const lignes = [], sources = new Set(), pistes = [];
+    const lignes = [], sources = new Set(), pistes = [], phrases = [];
     let statut = actif ? 'verifie' : 'sans_objet';
     if (s.id === 'trainFr' || s.id === 'itineraire') {
       st.groupes.forEach(gr => gr.vols.forEach(v => {
@@ -374,9 +382,24 @@
         const avant = codesVols(a.legs), apres = codesVols(b.apres);
         const train = b.trainLegs.map(l => `${l.from.code} → ${l.to.code} en TGV`);
         if (train.length || avant.join() !== apres.join()) {
-          lignes.push(`<b>${nomCourt(gr)}</b> : ${fleches(avant)} devient ${[...train, fleches(apres)].filter(Boolean).join(', puis ')}`);
-          if (train.length && LV.tgv.source) sources.add(`TGV : ${esc(LV.tgv.texte || '')} Source : ${esc(LV.tgv.source)}`);
-          if (s.id === 'itineraire') b.apres.forEach(l => { const x = Calc.liaison(l.from.code, l.to.code); if (x) sources.add(`${descLigne(l.from.code, l.to.code)}. Source : ${esc(x.source)}`); });
+          lignes.push(`<b>${nomCourt(gr)}</b> : ${avant.join(' → ')} devient ${[...train, apres.join(' → ')].filter(Boolean).join(', puis ')}`);
+          if (train.length) {
+            b.trainLegs.forEach(l => phrases.push(`${esc(ville(l.from))} → ${esc(ville(l.to))} en TGV direct (≈ 4 h) au lieu de l’avion`));
+            if (LV.tgv.source) sources.add(`TGV : ${esc(LV.tgv.texte || '')} Source : ${esc(LV.tgv.source)}`);
+          }
+          if (s.id === 'itineraire') {
+            if (b.apres.length === 1) phrases.push(`${nomCourt(gr)} : vol sans escale ${esc(ville(b.apres[0].from))} → ${esc(ville(b.apres[0].to))}`);
+            else {
+              // Ne citer que les escales qui changent : « escale à Detroit au lieu d’Atlanta ».
+              const hubs = l => l.slice(0, -1).map(x => x.to);
+              const ha = hubs(a.legs), hb = hubs(b.apres);
+              const nv = hb.filter(h => !ha.some(x => x.code === h.code)), anc = ha.filter(h => !hb.some(x => x.code === h.code));
+              const noms = l => l.map(x => esc(ville(x))).join(' et ');
+              const de = l => (/^[aeiouyéèêh]/i.test(ville(l[0])) ? 'd’' : 'de ') + noms(l);
+              phrases.push(`${nomCourt(gr)} : escale à ${noms(nv.length ? nv : hb)}${anc.length ? ` au lieu ${de(anc)}` : ''}`);
+            }
+            b.apres.forEach(l => { const x = Calc.liaison(l.from.code, l.to.code); if (x) sources.add(`${descLigne(l.from.code, l.to.code)}. Source : ${esc(x.source)}`); });
+          }
         }
         // Pistes : meilleur itinéraire si l'on accepte aussi les lignes saisonnières ou à vérifier (non compté).
         if (s.id === 'itineraire' && a.legs.length > 1) {
@@ -387,8 +410,8 @@
             const kgAvant = a.legs.reduce((x, l) => x + l.d * (st.rf ? l.tranche.avec : l.tranche.sans), 0);
             const n = (+v.pax || 0) * (v.ar ? 2 : 1);
             const pourquoi = tout.legs.map(l => Calc.liaison(l.from.code, l.to.code)).filter(x => x && !(x.statut === 'verifie' && x.toutLAnnee))
-              .map(x => `${x.route.replace('-', ' → ')} : ${x.statut === 'verifie' ? '' : 'à vérifier'}${x.statut !== 'verifie' && x.note ? ', ' : ''}${esc(x.note || '')}`);
-            pistes.push(`<b>${nomCourt(gr)}</b> : ${fleches(codesVols(tout.legs))}, environ − ${t((kgAvant - tout.kg) * n)} t (${pourquoi.join(' ; ')})`);
+              .map(x => `${x.route.replace('-', ' → ')} : ${[x.statut === 'verifie' ? '' : 'à vérifier', esc(x.note || '')].filter(Boolean).join(', ')}`);
+            pistes.push(`<b>${nomCourt(gr)}</b> : ${codesVols(tout.legs).join(' → ')}, environ − ${t((kgAvant - tout.kg) * n)} t (${pourquoi.join(' ; ')})`);
           }
         }
       }));
@@ -397,26 +420,88 @@
         if (deja) statut = 'deja';
       }
     } else if (actif) statut = s.id === 'eco' ? 'a_decider' : 'a_verifier';
-    return { g, actif, statut, lignes, sources: [...sources], pistes };
+    const vide = {
+      trainFr: statut === 'deja' ? 'Déjà fait : ce trajet est saisi en train.' : 'Aucun vol à l’intérieur de la France dans les données.',
+      itineraire: 'Les itinéraires saisis sont déjà les moins émetteurs parmi les lignes connues.',
+      carToBus: 'Personne n’est en voiture ou en taxi dans les données.',
+      eco: 'Tout le monde voyage déjà en classe économique.'
+    };
+    const plein = { carToBus: 'Autocar ou navette collective au lieu des voitures, taxis et locations.', eco: 'Tout le monde en classe économique.' };
+    const phrase = actif ? ([...new Set(phrases)].join(' · ') || plein[s.id] || '') : vide[s.id];
+    return { g, actif, statut, phrase, lignes, sources: [...sources], pistes };
   }
 
-  function levierHtml(s) {
-    const x = levierInfo(s);
+  // ---------- Étape 1 : une carte par levier (toute la carte est un interrupteur) ----------
+  function levierCarte(s, x) {
+    const on = !!st.scenarios[s.id];
     const [g1, g2] = st.rf ? [x.g.avec, x.g.sans] : [x.g.sans, x.g.avec];
     const autre = st.rf ? 'sans' : 'avec';
-    return `
-          <div class="scenario"><div><label class="switch"><input type="checkbox" data-scen="${s.id}" ${st.scenarios[s.id] ? 'checked' : ''}><span class="track"></span><span>${s.titre}</span></label>
-            <div class="desc lv-indent">${s.desc}</div></div>
-            <div class="gain num" style="text-align:right">${x.actif ? `− ${t(g1)} t<div class="faint" style="font-weight:500;font-size:11.5px">${autre} traînées : − ${t(g2)} t</div>` : '<span class="faint">aucun effet</span>'}</div>
-            <div class="lv-detail lv-indent">
-              <div>${PILL[x.statut]} <span class="faint">Qui décide : ${s.qui}.</span></div>
-              ${x.lignes.length ? `<div>${x.lignes.join('<br>')}</div>` : ''}
-              ${x.pistes.length ? `<div class="faint">Piste selon les dates, non comptée : ${x.pistes.join('<br>')}</div>` : ''}
-              ${x.sources.length ? `<details><summary class="faint" style="cursor:pointer">Lignes utilisées et sources</summary><div class="faint" style="margin-top:4px">${x.sources.join('<br>')}</div></details>` : ''}
-            </div></div>`;
+    const detail = [
+      `Qui décide : ${s.qui}.`,
+      x.lignes.length ? x.lignes.join('<br>') : '',
+      x.pistes.length ? `<span class="faint">Piste selon les dates, non comptée :</span><br>${x.pistes.join('<br>')}` : '',
+      x.sources.length ? `<span class="faint">Lignes utilisées et sources :</span><br>${x.sources.join('<br>')}` : ''
+    ].filter(Boolean).map(h => `<p>${h}</p>`).join('');
+    return `<div class="sc-lever${on ? ' on' : ''}${x.actif ? '' : ' na'}" style="--c:${s.couleur}">
+        <button type="button" class="sc-lever-hit" data-scen="${s.id}" aria-pressed="${on}"${!x.actif && !on ? ' disabled' : ''}>
+          <span class="sc-ico">${ICO[s.icone]}</span>
+          <span class="sc-lever-body">
+            <span class="sc-lever-title">${s.titre}</span>
+            <span class="sc-lever-txt">${x.phrase}</span>
+            <span class="sc-lever-foot">${x.actif ? `<span class="sc-gain num">− ${t(g1)} t</span><span class="sc-gain-2 faint num">${autre} traînées : − ${t(g2)} t</span>` : ''}${PILL[x.statut]}${x.pistes.length ? '<span class="pill">+ 1 piste selon les dates</span>' : ''}</span>
+          </span>
+          <span class="sc-switch" aria-hidden="true"></span>
+        </button>
+        <details class="sc-more"><summary>Détail et sources</summary>${detail}</details>
+      </div>`;
   }
 
-  // Repère de prix correspondant au prix choisi (ou texte pour un prix libre).
+  // ---------- Étape 2 : le trajet de chaque groupe, avant et après ----------
+  // Étapes d'un vol saisi (avec les segments au sol de l'onglet Trajets), puis avec les leviers cochés.
+  function etapesVol(v) {
+    const it = Calc.itineraire(v.route, st); if (it.err) return null;
+    const modes = Array.isArray(v.legModes) ? v.legModes : [];
+    const avant = it.legs.map((l, i) => ({ a: l.from, b: l.to, mode: Calc.MODES_SOL[modes[i]] && !Calc.transat(l.from, l.to) ? modes[i] : 'avion' }));
+    const iAir = avant.map((s, i) => s.mode === 'avion' ? i : -1).filter(i => i >= 0);
+    if (!iAir.length) return { avant, apres: avant };
+    const y = Calc.calcVol(v, st, { ...st.scenarios, rf: st.rf });
+    const lead = avant.slice(0, iAir[0]), trail = avant.slice(iAir[iAir.length - 1] + 1);
+    const reste = (y.trainLegs || []).map(l => ({ a: l.from, b: l.to, mode: 'tgv' }));
+    const seq = [...lead]; let cur = avant[iAir[0]].a.code;
+    const train = () => { let k; while ((k = reste.findIndex(s => s.a.code === cur)) >= 0) { const s = reste.splice(k, 1)[0]; seq.push(s); cur = s.b.code; } };
+    train();
+    (y.apres || []).forEach(l => { seq.push({ a: l.from, b: l.to, mode: 'avion' }); cur = l.to.code; });
+    train();
+    return { avant, apres: [...seq, ...reste, ...trail] };
+  }
+  const MODE = { avion: ['avion', 'en avion'], tgv: ['train', 'en TGV'], train: ['train', 'en train'], autocar: ['bus', 'en autocar'], voiture: ['voiture', 'en voiture'] };
+  function chemin(segs, ref) {
+    if (!segs.length) return '';
+    const stops = [segs[0].a, ...segs.map(s => s.b)];
+    return `<ol class="sc-path">${stops.map((p, i) => {
+      const s = segs[i], m = s && (MODE[s.mode] || MODE.avion);
+      return `<li class="sc-stop${ref && !ref.has(p.code) ? ' new' : ''}"><b>${p.code}</b><small>${esc(ville(p))}</small></li>`
+        + (s ? `<li class="sc-leg ${s.mode === 'avion' ? 'air' : 'ground'}" title="${s.a.code} → ${s.b.code} ${m[1]}"><span>${ICO[m[0]]}</span><i class="sr">${m[1]}</i></li>` : '');
+    }).join('')}</ol>`;
+  }
+  function trajetCarte(g, gi, r0, r1) {
+    const vols = g.vols.map(v => ({ v, e: etapesVol(v) })).filter(x => x.e);
+    const a = r0.groupes[gi].total, b = r1.groupes[gi].total, d = a - b;
+    const cle = e => e.map(s => s.a.code + s.b.code + s.mode).join();
+    return `<div class="sc-trip">
+        <div class="sc-trip-head"><span class="dot" style="background:${couleurGroupe(g)}"></span><b>${esc(g.nom)}</b>
+          <span class="sc-trip-t num">${d > 0.05 ? `${t(a)} t → <b>${t(b)} t</b> <span class="sc-down">− ${t(d)} t</span>` : `${t(a)} t`}</span></div>
+        ${vols.map(({ v, e }) => {
+          const change = cle(e.avant) !== cle(e.apres);
+          const ref = new Set(e.avant.flatMap(s => [s.a.code, s.b.code]));
+          return `${vols.length > 1 ? `<div class="sc-vol faint">${esc(v.label || 'Vol')} · ${+v.pax || 0} pers.</div>` : ''}
+          <div class="sc-row${change ? ' old' : ''}"><span class="sc-tag">Aujourd’hui</span>${chemin(e.avant)}</div>
+          ${change ? `<div class="sc-row"><span class="sc-tag accent">Avec les leviers</span>${chemin(e.apres, ref)}</div>` : ''}`;
+        }).join('')}
+      </div>`;
+  }
+
+  // ---------- Étape 3 : prix de la tonne et budget ----------
   const prixSource = p => {
     const r = (LV.prix.reperes || []).find(x => x.prix === p);
     if (r) return `<b>${esc(r.label)}</b> : ${esc(r.desc)} Source : ${esc(r.source)}.`;
@@ -428,58 +513,99 @@
     return { res: res(st.rf), autre: res(!st.rf) };
   };
 
+  // Largeur précédente de la barre « après », pour l'animer d'un état à l'autre.
+  let scAvant = null, scDoux = false;
+
   function vScenarios() {
     const base = Calc.calculer(st);
     const sc = Calc.calculer(st, st.scenarios);
+    const infos = Object.fromEntries(SCEN.map(s => [s.id, levierInfo(s)]));
     const red = base.total - sc.total;
     const residuel = sc.total;
     const budget = residuel / 1000 * st.prixTonne;
     const budgetAutre = budgets().autre / 1000 * st.prixTonne;
     const plants = st.coutPlant > 0 ? Math.floor(budget / st.coutPlant) : 0;
     const conv = st.rf ? 'avec' : 'sans', autre = st.rf ? 'sans' : 'avec';
-    return `
-      <div class="head"><div><div class="page-title">Mesurer, éviter, réduire, puis contribuer</div><h1 style="font-size:28px">Simulateur de scénarios</h1></div>${seg()}</div>
-      <div class="card" style="--i:0;margin-bottom:12px;padding:12px 14px">${Viz.demarche(red > 0.5 ? [0, 2, 3] : [0, 3])}</div>
-      <div class="grid grid-3">
-        <div class="card tilt" style="--i:0"><div class="kpi-label">Bilan mesuré</div><div class="kpi-value num" data-count="${t(base.total)}">${t(base.total)} <small>tCO2e</small></div><div class="kpi-sub">Situation saisie, sans aucune mesure (${conv} traînées)</div></div>
-        <div class="card tilt" style="--i:1"><div class="kpi-label"><span class="dot" style="background:var(--accent)"></span>Réduction potentielle</div><div class="kpi-value num" style="color:var(--accent)" data-count="${t(red)}">${t(red)} <small>tCO2e</small></div><div class="kpi-sub">${pct(base.total ? red / base.total : 0)} du bilan, si les responsables des Study Tours appliquent les mesures cochées</div></div>
-        <div class="card tilt" style="--i:2"><div class="kpi-label">Émissions résiduelles</div><div class="kpi-value num" data-count="${t(residuel)}">${t(residuel)} <small>tCO2e</small></div><div class="kpi-sub">Ce qui reste à couvrir par une contribution</div></div>
-      </div>
-      <div class="grid grid-main mt">
-        <div class="card" style="--i:3"><h2 class="section">Leviers de réduction</h2>
-          <p class="muted sub" style="margin-top:0">Ce sont des <b>recommandations</b> : le pôle ne réserve pas les voyages. Seules des lignes qui existent sont utilisées (vérifiées le ${esc(LV.maj || '')}, horaires à confirmer aux dates du voyage).</p>
-          ${SCEN.map(levierHtml).join('')}
-          <p class="faint" style="font-size:12px;margin-top:10px">Le gain affiché pour chaque levier est calculé seul. Combinés, les leviers ne s'additionnent pas : le TGV s'applique d'abord, puis l'itinéraire est optimisé à partir de Paris. La cascade montre l'effet cumulé.</p>
+    // Contribution de chaque levier coché, dans l'ordre d'application.
+    const pas = []; let opts = {}, prev = base.total;
+    SCEN.filter(s => st.scenarios[s.id]).forEach(s => { opts = { ...opts, [s.id]: true }; const v = Calc.calculer(st, opts).total; if (prev - v > 0.5) pas.push({ s, kg: prev - v }); prev = v; });
+    // Potentiel des leviers vérifiés (tous cochés).
+    const verifs = SCEN.filter(s => infos[s.id].statut === 'verifie');
+    const pot = base.total - Calc.calculer(st, Object.fromEntries(verifs.map(s => [s.id, true]))).total;
+    const montre = red > 0.5 ? red : pot, choisi = red > 0.5;
+    const n = base.participants || 1;
+    const w = kg => (base.total ? kg / base.total * 100 : 0).toFixed(2);
+    const wRes = w(choisi ? residuel : base.total - pot);
+    const w0 = scDoux && scAvant != null ? scAvant : 100;
+    scAvant = +wRes; const doux = scDoux; scDoux = false;
+    const reps = LV.prix.reperes || [];
+    const libre = !reps.some(r => r.prix === st.prixTonne);
+
+    return `<div class="sc-page${doux ? ' sc-calm' : ''}">
+      <div class="head"><div><div class="page-title">Scénarios · réduire, puis contribuer</div><h1 style="font-size:28px">Et si on voyageait autrement ?</h1></div>${seg()}</div>
+
+      <section class="card sc-hero">
+        <div>
+          <div class="kpi-label">${choisi ? 'Avec les leviers choisis, le voyage éviterait' : 'Ce que les leviers vérifiés permettraient d’éviter'}</div>
+          <div class="sc-big num"${doux ? '' : ` data-count="− ${t(montre)}"`}>− ${t(montre)} <small>tCO2e</small></div>
+          <p class="sc-hero-sub">soit <b>${pct(base.total ? montre / base.total : 0)}</b> du bilan, ${nf(montre / 1000 / n, 2)} t de moins par étudiant${F.reperes && F.reperes.objectifParisKg ? `, ou ${nf(montre / F.reperes.objectifParisKg, 0)} ans du budget carbone annuel compatible avec l’Accord de Paris (2 t par personne)` : ''}.</p>
+          ${choisi ? (pot > red + 0.5 ? `<button type="button" class="sc-cta" data-all>Ajouter les autres leviers vérifiés : jusqu’à − ${t(pot)} t</button>` : '')
+            : (pot > 0.5 ? `<button type="button" class="sc-cta" data-all>Appliquer ces leviers</button>` : '')}
+          <p class="faint sc-hero-note">Ce sont des recommandations : le pôle ne réserve pas les voyages, les responsables des Study Tours décident. Chiffres ${conv} traînées.</p>
         </div>
-        <div class="stack">
-          <div class="card" style="--i:4"><h2 class="section">Cascade : du bilan mesuré au résiduel</h2>${Viz.cascade(st, SCEN)}</div>
-          <div class="card" style="--i:5"><h2 class="section">Sur la carte : avant / après</h2>
-            ${st.scenarios.itineraire || st.scenarios.trainFr ? '' : '<p class="muted sub" style="margin:0 0 8px">Active « TGV » ou « Meilleur itinéraire existant » pour voir les itinéraires changer.</p>'}
-            ${Viz.carte(st, base, { scen: st.scenarios, H: 420 })}</div>
+        <div class="sc-bars" role="img" aria-label="Bilan aujourd’hui ${t(base.total)} tonnes, avec les leviers ${t(choisi ? residuel : base.total - pot)} tonnes">
+          <div class="sc-bar-l"><span>Aujourd’hui</span><b class="num">${t(base.total)} t</b></div>
+          <div class="sc-bar"><i class="sc-seg base" style="width:100%"></i></div>
+          <div class="sc-bar-l"><span>${choisi ? 'Avec les leviers choisis' : 'Avec les leviers vérifiés'}</span><b class="num${choisi ? ' sc-acc' : ''}">${t(choisi ? residuel : base.total - pot)} t</b></div>
+          <div class="sc-bar"><i class="sc-seg res" style="width:${wRes}%;--w0:${w0}%"></i>${choisi
+            ? pas.map(p => `<i class="sc-seg cut" style="width:${w(p.kg)}%;--c:${p.s.couleur}" title="${p.s.court} : − ${t(p.kg)} t"></i>`).join('')
+            : `<i class="sc-seg cut ghost" style="width:${w(pot)}%"></i>`}</div>
+          <div class="sc-legend">${choisi
+            ? pas.map(p => `<span><i class="sc-sw" style="--c:${p.s.couleur}"></i>${p.s.court} <b class="num">− ${t(p.kg)} t</b></span>`).join('')
+            : '<span class="faint">Coche un levier ci-dessous pour voir sa part.</span>'}</div>
         </div>
+      </section>
+
+      <div class="sc-step"><i>1</i><div><h2>Réduire : choisir les leviers</h2><p>Chaque carte est un interrupteur. Seules des lignes qui existent sont utilisées (vérifiées le ${esc(LV.maj || '')}, horaires à confirmer aux dates du voyage).</p></div></div>
+      <div class="sc-levers">${SCEN.map(s => levierCarte(s, infos[s.id])).join('')}</div>
+      <p class="faint sc-foot">Le gain de chaque carte est calculé seul. Ensemble, les leviers ne s’additionnent pas : le TGV s’applique d’abord, puis l’itinéraire est optimisé à partir de Paris. La barre du haut montre l’effet combiné.</p>
+
+      <div class="sc-step"><i>2</i><div><h2>Ce qui change dans le voyage</h2><p>Le trajet de chaque groupe, aujourd’hui et avec les leviers cochés. En vert : les nouvelles escales.</p></div></div>
+      <div class="sc-change">
+        <div>${st.groupes.map((g, gi) => trajetCarte(g, gi, base, sc)).join('')}</div>
+        <div class="card sc-map"><h3>Sur la carte</h3>${Viz.carte(st, base, { scen: st.scenarios, H: 360 })}</div>
       </div>
-      <div class="card mt" style="--i:5"><h2 class="section">Contribution à financer</h2>
-        <div class="grid grid-2">
-          <div>
-            <div class="range-row"><span class="muted">Prix retenu par tonne</span><b class="num" id="prix-out">${st.prixTonne} € / tCO2e</b></div>
+
+      <div class="sc-step"><i>3</i><div><h2>Contribuer : financer ce qui reste</h2><p>Les ${t(residuel)} t restantes (${conv} traînées) × un prix par tonne. Choisis un repère : le prix définitif se fixe avec le pôle compensation.</p></div></div>
+      <div class="sc-pay">
+        <div class="card">
+          <div class="sc-prices">${reps.map(r => `<button type="button" class="sc-price${st.prixTonne === r.prix ? ' on' : ''}" data-prix="${r.prix}" aria-pressed="${st.prixTonne === r.prix}">
+              <span class="sc-price-name">${esc(r.label)}</span>
+              <span class="sc-price-val num">${r.prix} € <small>/ t</small></span>
+              <span class="sc-price-budget num">${eur(residuel / 1000 * r.prix)}</span>
+              <span class="sc-price-court">${esc(r.court || '')}</span>
+            </button>`).join('')}</div>
+          <p class="faint sc-src" id="prix-src">${prixSource(st.prixTonne)}</p>
+          <details class="sc-more sc-free"${libre ? ' open' : ''}><summary>Autre prix, coût d’un plant</summary>
+            <div class="range-row"><span class="muted">Prix par tonne</span><b class="num" id="prix-out">${st.prixTonne} € / tCO2e</b></div>
             <input type="range" min="1" max="${LV.prix.max || 300}" step="1" value="${st.prixTonne}" data-range="prixTonne" aria-label="Prix par tonne">
-            <div class="no-print" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px" aria-label="Repères de prix">${(LV.prix.reperes || []).map(r => `<button type="button" class="pill${st.prixTonne === r.prix ? ' accent' : ''}" style="border:0;cursor:pointer" data-prix="${r.prix}">${esc(r.label)} · ${r.prix} €</button>`).join('')}</div>
-            <p class="faint" id="prix-src" style="font-size:12px;margin:6px 0 0">${prixSource(st.prixTonne)}</p>
-            <p class="faint" style="font-size:12px;margin:4px 0 0">Le prix définitif se fixe avec le pôle compensation, selon le projet réellement financé.</p>
             <div class="range-row mt"><span class="muted">Coût d'un plant (devis oct. 2025 : ${nf(F.coutPlantHistorique, 2)} €)</span><b class="num" id="plant-out">${nf(st.coutPlant, 2)} €</b></div>
             <input type="range" min="1" max="30" step="0.25" value="${st.coutPlant}" data-range="coutPlant" aria-label="Coût d'un plant">
-          </div>
-          <div class="stack">
-            <div><div class="kpi-label">Budget de contribution</div><div class="kpi-value num" id="budget-out">${eur(budget)}</div><div class="kpi-sub">${t(residuel)} t résiduelles (${conv} traînées) × <span id="prix-sub">${st.prixTonne}</span> €. ${autre[0].toUpperCase() + autre.slice(1)} traînées : <span id="budget-autre">${eur(budgetAutre)}</span></div></div>
-            <div><div class="kpi-label">Plants finançables avec ce budget</div><div class="kpi-value num" id="plants-out">${plants.toLocaleString('fr-FR')}</div><div class="kpi-sub">Fournitures seulement (plants, protections, tuteurs), sans entretien ni suivi</div></div>
-          </div>
+          </details>
         </div>
-        <div class="mt2">${Viz.troisResultats(red, residuel, eur(budget))}</div>
-        <div class="note warn mt"><b>Trois résultats à ne jamais additionner :</b> la réduction potentielle (tCO2e évitées si on change le voyage), les émissions résiduelles, et le montant de contribution (en €). Le nombre de plants mesure un budget, <b>pas</b> des tonnes compensées : un arbre séquestre du carbone lentement, sur des décennies, et seulement s'il survit.</div>
-      </div>`;
+        <div class="card sc-budget">
+          <div class="kpi-label">Budget de contribution</div>
+          <div class="sc-budget-val num" id="budget-out">${eur(budget)}</div>
+          <p class="muted">${t(residuel)} t (${conv} traînées) × <span id="prix-sub">${st.prixTonne}</span> €<br>${autre[0].toUpperCase() + autre.slice(1)} traînées : <span id="budget-autre">${eur(budgetAutre)}</span></p>
+          <div class="sc-plants"><b class="num" id="plants-out">${plants.toLocaleString('fr-FR')}</b> plants finançables<br><span class="faint">Fournitures seules (plants, protections, tuteurs), sans entretien ni suivi. Ce n’est <b>pas</b> un nombre de tonnes compensées.</span></div>
+        </div>
+      </div>
+      <div class="mt2">${Viz.troisResultats(red, residuel, eur(budget))}</div>
+      <div class="note warn mt"><b>Trois résultats à ne jamais additionner :</b> la réduction potentielle (tCO2e évitées si on change le voyage), les émissions résiduelles, et le montant de contribution (en €). Un arbre séquestre du carbone lentement, sur des décennies, et seulement s'il survit.</div>
+    </div>`;
   }
   function aScenarios(view) {
-    // Met à jour le bloc « Contribution » sans tout redessiner.
+    // Met à jour le bloc « Contribuer » sans tout redessiner.
     const majPrix = () => {
       const b = budgets();
       const budget = b.res / 1000 * st.prixTonne;
@@ -491,23 +617,31 @@
       $('#budget-autre').textContent = eur(b.autre / 1000 * st.prixTonne);
       const tb = $$('.three-box b'); if (tb[2]) tb[2].textContent = eur(budget);
       $('#plants-out').textContent = Math.floor(budget / st.coutPlant).toLocaleString('fr-FR');
-      $$('[data-prix]', view).forEach(el => el.classList.toggle('accent', +el.dataset.prix === st.prixTonne));
+      $$('[data-prix]', view).forEach(el => { const on = +el.dataset.prix === st.prixTonne; el.classList.toggle('on', on); el.setAttribute('aria-pressed', on); });
     };
-    view.addEventListener('change', e => {
-      const s = e.target.dataset.scen; if (!s) return;
-      st.scenarios[s] = e.target.checked; save();
-      e.target.closest('.switch').classList.add('press-bounce');
-      setTimeout(() => render(true), 260);
+    const redessiner = () => { scDoux = true; render(true); };
+    view.addEventListener('click', e => {
+      const lv = e.target.closest('[data-scen]');
+      if (lv && !lv.disabled) {
+        st.scenarios[lv.dataset.scen] = !st.scenarios[lv.dataset.scen]; save();
+        lv.closest('.sc-lever').classList.toggle('on', st.scenarios[lv.dataset.scen]);
+        setTimeout(redessiner, 220);
+        return;
+      }
+      if (e.target.closest('[data-all]')) {
+        SCEN.forEach(s => { if (levierInfo(s).statut === 'verifie') st.scenarios[s.id] = true; });
+        save(); redessiner(); return;
+      }
+      const p = e.target.closest('[data-prix]');
+      if (p) {
+        st.prixTonne = +p.dataset.prix; save();
+        const r = $('[data-range="prixTonne"]', view); if (r) r.value = st.prixTonne;
+        majPrix();
+      }
     });
     view.addEventListener('input', e => {
       const k = e.target.dataset.range; if (!k) return;
       st[k] = +e.target.value; save();
-      majPrix();
-    });
-    view.addEventListener('click', e => {
-      const b = e.target.closest('[data-prix]'); if (!b) return;
-      st.prixTonne = +b.dataset.prix; save();
-      const r = $('[data-range="prixTonne"]', view); if (r) r.value = st.prixTonne;
       majPrix();
     });
   }

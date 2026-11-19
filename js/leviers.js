@@ -62,9 +62,9 @@
     prix: {
       max: 300,
       reperes: [
-        { id: 'lbc', prix: 35, label: 'Label Bas-Carbone', desc: 'Prix moyen d’un crédit de projet certifié en France (forêt, agriculture). Projets forestiers : 20 à 70 €.', source: 'I4CE, « Le Label Bas-Carbone : quel bilan après 6 ans d’existence ? », juin 2025, p. 60' },
-        { id: 'ets', prix: 81, label: 'Quotas européens', desc: 'Prix moyen sur le marché européen du carbone, mai à octobre 2026 (81,17 €).', source: 'Toute l’Europe, 05/11/2026, d’après la Commission européenne' },
-        { id: 'vac', prix: 273, label: 'Valeur de l’action pour le climat', desc: 'Valeur de référence de l’État pour 2027 : 256 € en 2025, + 3,2 % par an (euros 2023).', source: 'Avis n° 2025-2 du Conseil scientifique de l’évaluation socioéconomique, 21/05/2025 (rapport Quinet, mars 2025)' }
+        { id: 'lbc', prix: 35, label: 'Label Bas-Carbone', court: 'Projets certifiés en France (forêt, agriculture)', desc: 'Prix moyen d’un crédit de projet certifié en France (forêt, agriculture). Projets forestiers : 20 à 70 €.', source: 'I4CE, « Le Label Bas-Carbone : quel bilan après 6 ans d’existence ? », juin 2025, p. 60' },
+        { id: 'ets', prix: 81, label: 'Quotas européens', court: 'Prix du marché européen du carbone', desc: 'Prix moyen sur le marché européen du carbone, mai à octobre 2026 (81,17 €).', source: 'Toute l’Europe, 05/11/2026, d’après la Commission européenne' },
+        { id: 'vac', prix: 273, label: 'Valeur de l’action pour le climat', court: 'Valeur de référence de l’État', desc: 'Valeur de référence de l’État pour 2027 : 256 € en 2025, + 3,2 % par an (euros 2023).', source: 'Avis n° 2025-2 du Conseil scientifique de l’évaluation socioéconomique, 21/05/2025 (rapport Quinet, mars 2025)' }
       ],
       // Repère bas, affiché pour comparaison seulement.
       plancher: { prix: 8, desc: 'Crédits volontaires tous standards, surtout internationaux, de qualité très variable', source: 'I4CE, juin 2025, p. 60' }

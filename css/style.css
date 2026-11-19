@@ -556,12 +556,3 @@ p.sub { font-size: 12.5px; margin: -6px 0 10px; }
 @media (max-width: 1100px) { .saisie-viz { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .tor-row { grid-template-columns: 1fr 64px; } .tor-row .tor-track { grid-column: 1 / -1; grid-row: 2; } }
 .saisie-viz > * { min-width: 0; }
-
-/* Onglet Scénarios : détail de chaque levier (statut, itinéraires, sources). Ajout : Quentin. */
-.scenario { flex-wrap: wrap; }
-.scenario > div:first-child { flex: 1 1 260px; min-width: 0; }
-.scenario .lv-indent { margin-left: 56px; }
-.scenario .lv-detail { flex-basis: 100%; margin-top: -4px; color: var(--text-2); font-size: 12.5px; }
-.scenario .lv-detail > * + * { margin-top: 6px; }
-.scenario .lv-detail details { font-size: 12px; }
-@media (max-width: 640px) { .scenario .lv-indent { margin-left: 0; } .scenario .desc.lv-indent { margin-top: 6px; } }

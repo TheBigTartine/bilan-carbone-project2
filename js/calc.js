@@ -125,7 +125,9 @@
     }
     // Levier « Meilleur itinéraire existant » : mêmes aéroports de départ et d'arrivée, pas plus de vols,
     // en passant par les lignes vérifiées et ouvertes toute l'année les moins émettrices (escale plus courte ou vol sans escale).
-    if (opts.itineraire && legs.length > 1) {
+    // Seulement si les vols se suivent (pas de trajet au sol au milieu, sinon il serait compté deux fois).
+    const contigus = legs.every((l, i) => i === 0 || legs[i - 1].to.code === l.from.code);
+    if (opts.itineraire && legs.length > 1 && contigus) {
       const kgAvant = legs.reduce((s, l) => s + l.d * fAvion(l, opts.rf), 0);
       const m = meilleurItineraire(legs[0].from, legs[legs.length - 1].to, legs.length, st, opts.rf, false);
       if (m && m.kg < kgAvant - 1e-9) legs = m.legs;

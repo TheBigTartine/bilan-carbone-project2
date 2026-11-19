@@ -166,7 +166,7 @@ Aujourd'hui, le site utilise 30 € par défaut dans les Scénarios, et 15 / 30 
 
 **Fichiers touchés :**
 - `js/leviers.js` (nouveau), `js/calc.js` (moteur), `js/app.js` (onglets Scénarios et Rapport) ;
-- `js/visuals.js` (carte, libellé « Réduire ») et `css/style.css` (mise en page du détail des leviers) : fichiers de Maxime, à le prévenir ;
+- `js/visuals.js` (carte, libellé « Réduire ») : fichier de Maxime, à le prévenir ; la mise en page de l’onglet est dans un fichier à part, `css/scenarios.css` (nouveau) ;
 - `js/data.js` (deux lignes du bloc HYPOTHESES : leviers par défaut et prix par défaut) : à signaler à Adrien ;
 - `js/glossary.js` (définition du prix de la tonne) et `index.html` (nouveau script et numéro de version).
 
