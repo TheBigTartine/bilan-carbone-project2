@@ -39,3 +39,9 @@ Puis ouvrir http://localhost:8781.
 ## En ligne (GitHub Pages)
 
 Chaque push sur `main` met le site à jour (Settings → Pages → Deploy from a branch → `main` / root).
+
+## Après une modification : changer le numéro de version
+
+Les navigateurs gardent les fichiers en mémoire jusqu'à 10 minutes. Pour que tout le monde voie tout de suite la
+nouvelle version, changer le `?v=...` des 6 liens en bas de `index.html` (par exemple `?v=2026-11-20a`) dans le
+même commit. Si une page paraît ancienne : **Cmd + Maj + R** (Mac) ou **Ctrl + F5** (Windows) pour forcer le rechargement.
