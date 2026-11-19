@@ -31,8 +31,127 @@
       }).join('')}`;
   }
 
+  // =====================================================================
+  // Jeu : mon empreinte, badges et points, duel, quiz
+  // =====================================================================
+  // Trajet d'une personne (1 passager), pour le calcul de « Mon empreinte » et des points.
+  const unPax = tr => ({ route: String(tr.route || ''), legModes: Array.isArray(tr.legModes) ? tr.legModes : [], pax: 1,
+    classe: window.FACTEURS.classes[tr.classe] ? tr.classe : 'eco', ar: tr.ar !== false });
+  const kgTrajet = (v, st) => { const x = Calc.calcVol(v, st, { rf: st.rf }); return x.err ? null : x.air + x.sol + x.train; };
+
+  // Mon empreinte = mon itinéraire (avion + segments au sol) + ma part des trajets sur place du groupe.
+  function empreinte(st, r, moi) {
+    const gi = st.groupes.findIndex(g => g.id === moi.groupe);
+    const voyage = gi < 0 ? null : kgTrajet(unPax(moi.trajet), st);
+    if (voyage == null) return null;
+    const rg = r.groupes[gi];
+    const surPlace = rg.participants ? (rg.terr.reduce((s, k) => s + k, 0) + rg.location) / rg.participants : 0;
+    const total = voyage + surPlace, R = window.FACTEURS.reperes;
+    return { voyage, surPlace, total, moyenne: rg.parEtudiant, groupe: rg, gi,
+      mois: total / R.objectifParisKg * 12, tgv: total / R.tgvParisMarseilleKg };
+  }
+
+  // Badges d'un trajet, et points = kg évités par rapport au trajet prévu pour le groupe, tout en avion, en économique.
+  function badges(st, tr, groupe) {
+    const modes = Array.isArray(tr.legModes) ? tr.legModes : [];
+    const prevu = itinGroupe(st, groupe);
+    const nEtapes = String(tr.route || '').split('-').filter(Boolean).length;
+    const liste = [];
+    if (modes.includes('train')) liste.push('Train');
+    if (modes.includes('autocar')) liste.push('Autocar');
+    if (prevu.etapes.length > 2 && nEtapes < prevu.etapes.length) liste.push('Moins d’escales');
+    const ref = kgTrajet({ route: prevu.etapes.join('-'), legModes: [], pax: 1, classe: 'eco', ar: tr.ar !== false }, st);
+    const moi = kgTrajet(unPax(tr), st);
+    const points = ref == null || moi == null ? 0 : Math.max(0, Math.round(ref - moi));
+    return { liste, points };
+  }
+
+  function carteEmpreinte(st, r, moi) {
+    const e = empreinte(st, r, moi);
+    if (!e) return '';
+    const b = badges(st, moi.trajet, moi.groupe);
+    const ecart = e.total - e.moyenne;
+    return `
+      <h3>Mon empreinte</h3>
+      <div class="emp-total num">${t(e.total, 2)} <small>tCO2e</small></div>
+      <dl class="emp-detail">
+        <dt>Mon trajet aller${moi.trajet.ar !== false ? ' et retour' : ''}</dt><dd class="num">${t(e.voyage, 2)} t</dd>
+        <dt>Ma part des trajets sur place</dt><dd class="num">${t(e.surPlace, 2)} t</dd>
+        <dt>Moyenne de ${esc(nomCourt(e.groupe))}</dt><dd class="num">${t(e.moyenne, 2)} t par étudiant</dd>
+      </dl>
+      <p class="emp-phrase">${Math.abs(ecart) < 5 ? 'Autant que la moyenne de ton groupe.' : `${t(Math.abs(ecart), 2)} t ${ecart < 0 ? 'de moins' : 'de plus'} que la moyenne de ton groupe.`}
+        C'est <b>${nf(e.mois, 0)} mois</b> du budget de 2 t par an compatible avec l'Accord de Paris, ou <b>${nf(e.tgv, 0)} allers-retours Paris–Marseille en TGV</b>.</p>
+      <div class="badges">${b.liste.length ? b.liste.map(x => `<span class="badge-jeu">${esc(x)}</span>`).join('') : `<span class="muted">Pas encore de badge : un segment en train ou en autocar, ou moins d'escales, en donne un.</span>`}</div>
+      <p class="emp-points"><b class="num">${nf(b.points, 0)}</b> point${b.points > 1 ? 's' : ''} <span class="muted">(kg de CO2e évités par rapport au trajet prévu, tout en avion)</span></p>`;
+  }
+
+  // Duel Kelley / HEC : taux de saisie, et part des saisies avec au moins un badge. Aucun prénom.
+  function carteDuel(st, r) {
+    if (!window.Partage || Partage.etat !== 'ok' || !Partage.saisies.length) return '';
+    const lignes = r.groupes.map((g, i) => {
+      const miennes = Partage.saisies.filter(s => s.groupe === g.id);
+      const avecBadge = miennes.filter(s => badges(st, s.trajet, g.id).liste.length).length;
+      return { nom: nomCourt(g), i, taux: g.participants ? g.saisis / g.participants : 0, badge: miennes.length ? avecBadge / miennes.length : 0 };
+    });
+    const tete = k => { const m = Math.max(...lignes.map(l => l[k])); return m > 0 && lignes.filter(l => l[k] === m).length === 1 ? m : null; };
+    const mTaux = tete('taux'), mBadge = tete('badge');
+    const pc = x => `${nf(x * 100, 0)} %`;
+    return `
+      <h3>Duel Kelley / HEC</h3>
+      <table class="duel"><thead><tr><th></th><th class="r">Trajets saisis</th><th class="r">Avec un badge</th></tr></thead><tbody>
+        ${lignes.map(l => `<tr><td><span class="dot" style="background:var(${l.i ? '--c-hec' : '--c-kelley'})"></span>${esc(l.nom)}</td>
+          <td class="r num${l.taux === mTaux ? ' duel-tete' : ''}">${pc(l.taux)}</td>
+          <td class="r num${l.badge === mBadge ? ' duel-tete' : ''}">${pc(l.badge)}</td></tr>`).join('')}
+      </tbody></table>
+      <p class="muted duel-note">En gras : le groupe en tête sur chaque critère.</p>`;
+  }
+
+  // Quiz : 4 questions calculées avec les données du site ; les mauvaises réponses valent la moitié et le double.
+  let q = null; // { i, score, choix, ordres }
+  const melange = () => { const a = [0, 1, 2]; for (let i = 2; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function questions(st, r) {
+    const kelley = itinGroupe(st, 'kelley').etapes.join('-');
+    const kgK = kgTrajet({ route: kelley, legModes: [], pax: 1, classe: 'eco', ar: true }, st) || 0;
+    const avion = kgTrajet({ route: 'MRS-CDG', legModes: ['avion'], pax: 1, classe: 'eco', ar: true }, st) || 0;
+    const train = kgTrajet({ route: 'MRS-CDG', legModes: ['train'], pax: 1, classe: 'eco', ar: true }, st) || 0;
+    const avec = Calc.calculer({ ...st, rf: true }).total, sans = Calc.calculer({ ...st, rf: false }).total;
+    const ratio = sans ? avec / sans : 1, part = r.partAir * 100;
+    const kg = v => `${nf(v, 0)} kg`;
+    return [
+      { q: 'Un aller-retour Marseille → Indiana (Kelley) en avion émet, pour un étudiant…',
+        rep: [kg(kgK), kg(kgK / 2), kg(kgK * 2)], ex: `${t(kgK, 2)} t, soit ${nf(kgK / window.FACTEURS.reperes.objectifParisKg * 12, 0)} mois du budget de 2 t par an compatible avec l'Accord de Paris.` },
+      { q: 'Quelle part du bilan des deux voyages vient de l\'avion ?',
+        rep: [`${nf(part, 1)} %`, `${nf(part / 2, 1)} %`, `${nf(part / 4, 1)} %`], ex: 'Les vols font presque tout le bilan : les trajets sur place pèsent peu à côté.' },
+      { q: 'Faire Marseille → Paris en train au lieu de l\'avion (aller et retour) évite, par étudiant…',
+        rep: [kg(avion - train), kg((avion - train) / 2), kg((avion - train) * 2)], ex: `Aller et retour, le train émet ${kg(train)} et l'avion ${kg(avion)}.` },
+      { q: 'Avec les traînées de condensation des avions, le bilan est multiplié par…',
+        rep: [ratio, 1 + (ratio - 1) / 2, 1 + (ratio - 1) * 2].map(x => `${nf(x, 1)}`), ex: 'En altitude, les traînées des avions réchauffent le climat en plus du CO2 : l\'ADEME donne pour cela un facteur « avec traînées ».' }
+    ];
+  }
+  function carteQuiz(st, r) {
+    if (!q) q = { i: 0, score: 0, choix: null, ordres: [melange(), melange(), melange(), melange()] };
+    const Q = questions(st, r);
+    if (q.i >= Q.length) return `
+      <h3>Quiz : devine les chiffres</h3>
+      <div class="quiz-score num">${q.score} / ${Q.length}</div>
+      <p>${q.score === Q.length ? 'Sans faute !' : q.score >= 2 ? 'Bien joué.' : 'Les ordres de grandeur surprennent souvent.'}</p>
+      <button type="button" class="btn primary quiz-btn" data-quiz-recommencer>Recommencer</button>`;
+    const x = Q[q.i], ordre = q.ordres[q.i];
+    return `
+      <h3>Quiz : devine les chiffres <span class="faint num">${q.i + 1} / ${Q.length}</span></h3>
+      <p class="quiz-q">${esc(x.q)}</p>
+      <div class="quiz-choix">${ordre.map(k => {
+        const etat = q.choix == null ? '' : k === 0 ? ' bon' : k === q.choix ? ' faux' : '';
+        return `<button type="button" class="quiz-rep${etat}" data-quiz="${k}" ${q.choix == null ? '' : 'disabled'}>${esc(x.rep[k])}</button>`;
+      }).join('')}</div>
+      ${q.choix == null ? '' : `<p class="quiz-ex"><b>${q.choix === 0 ? 'Bonne réponse.' : `Réponse : ${esc(x.rep[0])}.`}</b> ${esc(x.ex)}</p>
+        <button type="button" class="btn primary quiz-btn" data-quiz-suivant>${q.i + 1 < Q.length ? 'Question suivante' : 'Voir mon score'}</button>`}`;
+  }
+
   function view(ctx) {
     const st = ctx.st(), r = Calc.calculer(st), moi = lireMoi();
+    const emp = moi && moi.trajet ? carteEmpreinte(st, r, moi) : '';
+    const duel = carteDuel(st, r);
     return `
       <div class="head"><div><div class="page-title">Study Tours 2026-2027 · Kelley et HEC Montréal</div><h1 style="font-size:28px">Mon voyage</h1></div></div>
       <div class="mv-grille">
@@ -47,9 +166,21 @@
           <h3>La collecte des trajets</h3>
           <div class="jauge mt">${jauge(st, r)}</div>
         </div>
+        ${emp ? `<div class="card" style="--i:2">${emp}</div>` : ''}
+        ${duel ? `<div class="card" style="--i:3">${duel}</div>` : ''}
+        <div class="card quiz" style="--i:4">${carteQuiz(st, r)}</div>
       </div>`;
   }
-  function bind() {}
+  function bind(view, ctx) {
+    view.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b || !q) return;
+      if (b.dataset.quiz != null && q.choix == null) { q.choix = +b.dataset.quiz; if (q.choix === 0) q.score++; }
+      else if ('quizSuivant' in b.dataset) { q.i++; q.choix = null; }
+      else if ('quizRecommencer' in b.dataset) q = null;
+      else return;
+      ctx.render(true);
+    });
+  }
 
   // =====================================================================
   // Formulaire « Saisir mon trajet »
@@ -144,11 +275,13 @@
   }
 
   function fin(ctx) {
-    const st = ctx.st(), r = Calc.calculer(st);
+    const st = ctx.st(), r = Calc.calculer(st), moi = lireMoi();
+    const emp = moi && moi.trajet ? carteEmpreinte(st, r, moi) : '';
     return `
       <div class="card mt-carte" style="--i:0">
         <h2>C'est enregistré, merci !</h2>
         <p>Ton trajet compte maintenant dans le bilan, à la place d'une hypothèse.</p>
+        ${emp ? `<div class="mt-emp">${emp}</div>` : ''}
         <div class="jauge mt2">${jauge(st, r)}</div>
         <a class="btn primary mt2 mv-cta" href="#/">Retour à l'accueil</a>
       </div>`;

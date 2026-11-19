@@ -236,7 +236,32 @@ Tâches :
 - Le quiz pose 3 ou 4 questions avant de montrer la réponse.
 
 Critères de fin : voir la spec, phase 6.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 6 (écrit le 19/11/2026 sur `1ae94ed`)
+
+Règle commune : tout est calculé avec `Calc` (mêmes facteurs que le bilan) ; les points sont des kg évités, affichés à part, jamais retirés du bilan (P9) ; jamais les mots « neutre » ni « compensé ».
+
+1. **Mon empreinte (F2).** Sur l'écran « C'est enregistré » et en carte sur l'accueil quand ce téléphone a envoyé un trajet (lu dans `bilan-carbone.moi`, marche aussi hors ligne).
+   - Mon total = mon itinéraire pour 1 personne (avion + étapes au sol) + ma part des trajets sur place du groupe (trajets sur place et locations du groupe ÷ participants).
+   - Comparé à la moyenne par étudiant de mon groupe et au budget climat de 2 t par an (en mois de budget), avec un équivalent : nombre d'allers-retours Paris–Marseille en TGV (mêmes repères que la Synthèse).
+   - Test : saisie Kelley identique à l'hypothèse → mon total = moyenne Kelley (2 865 kg, avec traînées).
+2. **Badges et points (F4, P9).** Trois badges : « Train » (au moins une étape en train), « Autocar » (au moins une étape en autocar), « Moins d'escales » (moins de correspondances en avion que le trajet prévu pour le groupe). Points = kg évités = trajet prévu du groupe, tout en avion, pour 1 personne, avec ton aller-retour − ton trajet ; 0 si négatif. Test : Kelley avec Marseille → Paris en train → badge « Train » et ≈ 332 points ; trajet identique à l'hypothèse → aucun badge, 0 point.
+3. **Duel Kelley / HEC (F5).** Carte sur l'accueil : pour chaque groupe, taux de saisie (saisis ÷ participants) et part des saisies qui ont au moins un badge ; le groupe en tête est marqué pour chaque critère. On compare des choix, pas des tonnes (les distances diffèrent). Lu dans les saisies publiques (sans prénom). Masqué si la base est injoignable ou si aucune saisie.
+4. **Quiz « Devine ton empreinte » (F6).** Carte sur l'accueil, 4 questions à 3 choix, une à la fois ; après le clic : bonne réponse + une phrase d'explication ; à la fin, le score « x / 4 » et « Recommencer ». Réponses calculées en direct (elles suivent le bilan) :
+   - l'aller-retour en avion d'un étudiant Kelley (kg) ;
+   - la part de l'avion dans le bilan (%) ;
+   - ce que Marseille → Paris en train au lieu de l'avion évite par étudiant (kg, aller-retour) ;
+   - de combien les traînées de condensation multiplient le bilan.
+   Les mauvaises réponses sont la bonne ÷ 2 et × 2 (ou des pourcentages éloignés), mélangées. À faire relire par le pôle.
+5. **Style (`css/accueil.css`).** Badges (pastilles), duel (deux colonnes), quiz (gros boutons ≥ 44 px) ; rien de plus large que 375 px.
+6. **Versions.** `?v=` à `2026-11-19t`.
+
+Contrôles :
+- script de recalcul (dossier temporaire) sur les tests 1 et 2 et les 4 réponses du quiz ;
+- dans l'aperçu : une saisie de test « Essai E » avec le train → empreinte, badge, points ; duel 1 saisie / 1 badge pour Kelley ; quiz joué jusqu'au score ; puis suppression de la saisie de test ;
+- total du bilan inchangé par les points ; 7 onglets en avant et en arrière, 375 px et ordinateur, console sans erreur.
+
+Message de commit : « Phase 6 de l'audit : empreinte, badges, duel et quiz ».
 ### STOP — fin de la phase 6
 
 ## Phase 7 — Améliorations des fonctions existantes
