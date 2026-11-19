@@ -137,15 +137,38 @@ Aujourd'hui, le site utilise 30 € par défaut dans les Scénarios, et 15 / 30 
 
 ---
 
-## 6. Ce que cela change sur le site (phase 2)
+## 6. Ce qui a changé sur le site (phase 2, branche `scenarios-quentin`)
 
-1. Remplacer le levier « Vols directs » par des leviers qui reposent sur des vols réels :
-   - **« Escale la plus courte »** : Kelley passe par une escale au nord au lieu d'Atlanta ;
-   - **« Vol sans escale quand il existe »** : HEC prend Marseille → Montréal ; pour Kelley, sans objet ;
-   - **« TGV jusqu'à CDG »** : les deux groupes ; le site garde la distance actuelle et documente la limite.
-2. Pour chaque levier, afficher le statut (vérifié / à vérifier / sans objet), la source, le gain avec et sans traînées, et qui décide.
-3. Mettre les repères de prix ci-dessus dans le bloc Contribution et étendre le curseur à 300 €.
-4. Faire suivre la carte avant/après (fichier de Maxime) : elle doit lire les itinéraires calculés par le moteur au lieu de refaire le calcul.
+**Les leviers ne reposent plus que sur des lignes qui existent.** Elles sont listées, avec leur source, dans `js/leviers.js`.
+
+| Levier | Ce qu'il fait | Gain seul, hypothèses actuelles (avec / sans traînées) |
+|---|---|---|
+| **TGV jusqu'à l'aéroport Paris-CDG** | Les vols intérieurs à la France passent en TGV (distance : vol d'oiseau × 1,2) | − 23,2 t / − 12,7 t |
+| **Meilleur itinéraire existant** (remplace « Vols directs ») | Même départ, même arrivée, pas plus de vols. Le site cherche l'itinéraire le moins émetteur parmi les lignes **vérifiées qui volent toute l'année** : escale plus courte ou vol sans escale. | − 17,2 t / − 9,5 t (Kelley par Detroit ; HEC en vol sans escale Marseille → Montréal) |
+| Navettes | Inchangé ; s'applique aussi aux voitures de location | Sans objet pour l'instant |
+| Classe économique | Inchangé | Sans objet pour l'instant |
+
+- **Les deux premiers leviers combinés** : − 33,9 t avec traînées. Le TGV s'applique d'abord, puis l'itinéraire est optimisé à partir de Paris : Kelley passe par CDG → Detroit → Indianapolis, HEC par CDG → Montréal.
+- **Les lignes saisonnières ou à vérifier** (Dublin → Indianapolis, Toronto → Indianapolis, Marseille → Dublin…) ne sont pas comptées. Le site les affiche comme « piste selon les dates », avec leur gain approximatif.
+- **Pour chaque levier**, le site affiche :
+  - son statut : vérifié, à vérifier, à décider, sans objet, ou déjà dans le bilan si le segment est déjà saisi en train ;
+  - qui décide ;
+  - les itinéraires avant et après ;
+  - les lignes utilisées et leurs sources ;
+  - le gain avec et sans traînées.
+- **Prix de la tonne** :
+  - curseur de 1 à 300 € ;
+  - trois boutons de repères (35 €, 81 €, 273 €) qui affichent leur source ;
+  - prix par défaut à 35 € (Label Bas-Carbone) au lieu de 30 € sans source ;
+  - budget affiché avec et sans traînées.
+  - Dans l'onglet Rapport, le tableau des budgets utilise ces trois repères au lieu de 15 / 30 / 60 / 100 €. Le site arrondit le prix des quotas européens à 81 € : 13 964 € au lieu de 13 994 €.
+- **La carte avant/après** lit maintenant l'itinéraire calculé par le moteur, au lieu de refaire le calcul de son côté.
+
+**Fichiers touchés :**
+- `js/leviers.js` (nouveau), `js/calc.js` (moteur), `js/app.js` (onglets Scénarios et Rapport) ;
+- `js/visuals.js` (carte, libellé « Réduire ») et `css/style.css` (mise en page du détail des leviers) : fichiers de Maxime, à le prévenir ;
+- `js/data.js` (deux lignes du bloc HYPOTHESES : leviers par défaut et prix par défaut) : à signaler à Adrien ;
+- `js/glossary.js` (définition du prix de la tonne) et `index.html` (nouveau script et numéro de version).
 
 ---
 
