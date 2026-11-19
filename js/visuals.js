@@ -148,14 +148,14 @@
     const sq = Math.round(per / 100), budget = 20;
     const n = Math.max(sq, budget);
     const cells = Array.from({ length: n }, (_, i) => `<i class="${i < sq ? 'on' : ''} ${i < budget ? 'in' : ''}" style="animation-delay:${i * 22}ms"></i>`).join('');
-    return `<div class="grid grid-3">
+    const tiles = `
         ${tile('train', nf(tgv, 0), 'allers-retours Paris–Marseille en TGV', 'pour égaler le voyage d’un seul étudiant', 0)}
         ${tile('car', nf(car, 0), 'km seul en voiture thermique', `soit ${nf(car / 40075 * 100, 0)} % du tour de la Terre`, 1)}
-        ${tile('cal', nf(mois, 0), 'mois de budget climat', 'budget compatible avec l’Accord de Paris : 2 t par an et par personne', 2)}
-      </div>
-      <div class="card mt" style="--i:3"><h2 class="section">Le voyage d’un étudiant, en carrés de 100 kg</h2>
+        ${tile('cal', nf(mois, 0), 'mois de budget climat', 'budget compatible avec l’Accord de Paris : 2 t par an et par personne', 2)}`;
+    const waffle = `<div class="card" style="--i:3"><h2 class="section">Le voyage d’un étudiant, en carrés de 100 kg</h2>
         <div class="waffle">${cells}</div>
         <div class="legend mt"><span><i class="dot" style="background:var(--accent)"></i>${nf(per / 1000, 2)} t pour le voyage (${sq} carrés)</span><span><i class="dot" style="background:transparent;border:1.5px dashed var(--text-2)"></i>Budget climat d'une année entière : 2 t (20 carrés)</span></div></div>`;
+    return { tiles, waffle };
   }
 
   // ---------------------------------------------------------------------
