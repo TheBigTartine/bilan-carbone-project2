@@ -556,3 +556,18 @@ p.sub { font-size: 12.5px; margin: -6px 0 10px; }
 @media (max-width: 1100px) { .saisie-viz { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .tor-row { grid-template-columns: 1fr 64px; } .tor-row .tor-track { grid-column: 1 / -1; grid-row: 2; } }
 .saisie-viz > * { min-width: 0; }
+
+/* ---------- Téléphone : rien ne dépasse de l'écran (audit, phase 2) ---------- */
+@media (max-width: 760px) {
+  .total-line .calc, .total-card .calc { white-space: normal; overflow-wrap: anywhere; }
+  .trip { flex-wrap: wrap; overflow-x: visible; row-gap: 12px; }
+}
+/* Écran tactile : zones d'au moins 40 px (à l'ordinateur, rien ne change) */
+@media (pointer: coarse) {
+  .icon-x { width: 40px; height: 40px; }
+  .seg button { min-height: 40px; }
+  .check { width: 24px; height: 24px; margin: 8px; }
+  input[type="range"] { height: 40px; }
+  .btn, .sc-cta { min-height: 40px; }
+  table select, table input:not([type="checkbox"]), .field { min-height: 40px; }
+}

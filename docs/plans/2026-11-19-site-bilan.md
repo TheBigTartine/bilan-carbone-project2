@@ -71,7 +71,19 @@ Tâches :
 - L'itinéraire de l'accueil se remplit sans défiler de côté.
 
 Critères de fin : voir la spec, phase 2.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 2 (écrit le 19/11/2026 sur `4d81802`)
+
+1. **Débordement de Méthode et Rapport (D1).** Modifier `css/style.css`. But : au téléphone, les lignes de total du détail des calculs (`.total-line`, `.total-card`, police à chasse fixe sans retour à la ligne) passent à la ligne au lieu d'élargir la page. Test : à 375 px, largeur de page Méthode et Rapport = 375 px (aujourd'hui 494 px).
+2. **Parcours d'un étudiant (D3).** Modifier `css/style.css`. But : au téléphone, les étapes du parcours passent à la ligne au lieu de défiler de côté ; le voyage se voit en entier. Test : à 375 px, aucune étape au-delà du bord droit de la carte (aujourd'hui jusqu'à 401 px).
+3. **Itinéraire de l'accueil en cartes (D4).** Modifier `css/trajets.css`. But : au téléphone, chaque étape du tableau d'itinéraire s'affiche en bloc (ville, code, moyen de transport et km l'un sous l'autre), sans défilement de côté. Test : à 375 px, largeur utile du tableau ≤ largeur de la carte (aujourd'hui 483 px dans 279 px).
+4. **Zones tactiles (B1).** Modifier `css/style.css`, `css/trajets.css`. But : sur écran tactile, croix de suppression, boutons Avec / Sans traînées, menus de mode et curseurs de prix font au moins 40 px de haut ; cases à cocher agrandies avec une zone de toucher de 40 px. À l'ordinateur, rien ne change. Test : à 375 px en mode tactile, aucun bouton, menu ou curseur sous 40 px.
+5. **Confirmation avant suppression (B2).** Modifier `js/app.js` (Saisie). But : supprimer un vol ou un trajet terrestre demande confirmation, comme dans Trajets. Test : clic sur la croix puis « Annuler » → la ligne reste.
+6. **Nouvel itinéraire (C3).** Modifier `js/trajets.js` et `js/app.js` (Saisie, « + Ajouter un vol »). But : un nouvel itinéraire reçoit les participants qui n'ont pas encore d'itinéraire, et non tout l'effectif. Test : Kelley 36 participants, vol principal 36 → nouvel itinéraire à 0 pers. ; vol principal 30 → nouvel itinéraire à 6 pers.
+7. **Versions.** `index.html` : tous les `?v=` passent à `2026-11-19o`.
+
+Contrôles : mesures à 375 px dans l'aperçu (largeur de page, tailles des zones tactiles) ; total des hypothèses 172,4 t / 95,3 t ; 6 onglets en avant et en arrière, à 375 px et à l'ordinateur, console sans erreur. Prévenir Adrien (`trajets.js`, `trajets.css`).
+Message de commit : « Phase 2 de l'audit : ergonomie au téléphone ».
 ### STOP — fin de la phase 2
 
 ## Phase 3 — Textes et données cohérents

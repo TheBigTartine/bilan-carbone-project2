@@ -24,6 +24,7 @@
 - Spec : docs/specs/2026-11-19-site-bilan-spec.md ; plan : docs/plans/2026-11-19-site-bilan.md (8 phases, détail non écrit)
 - Étape : plan rédigé, en attente de validation de la spec (décisions P1 à P10) et du plan par Théo
 - Précisions du 19/11/2026 : visite guidée = calculs expliqués avec petits schémas animés, niveau non-ingénieur, ludique ; Théo est admin du dépôt (il décide des fusions, Martin est prévenu)
-- Phase 1 construite le 19/11/2026 (détail écrit : oui) : 14 contrôles chiffrés passés (script test_phase1.js du dossier temporaire), 6 onglets OK en avant et en arrière, console sans erreur ; pas encore commitée, en attente de la validation de Théo sur le site
-- Reste à faire : validation et commit de la phase 1, prévenir Maxime et Adrien, compte Supabase (Théo) avant la phase 4, puis phase 2
+- Phase 1 construite le 19/11/2026 (détail écrit : oui) : 14 contrôles chiffrés passés (script test_phase1.js du dossier temporaire), 6 onglets OK en avant et en arrière, console sans erreur ; validée par Théo et commitée en local (pas poussée)
+- Phase 2 construite le 19/11/2026 (détail écrit : oui) : 6 onglets à 375 px sans débordement, aucun bouton, menu, champ ou curseur sous 40 px au toucher, rien de changé à l'ordinateur, confirmation et nouvel itinéraire testés (36 → 0, 30 → 6), total 172,4 / 95,3 t ; validée par Théo et commitée en local (pas poussée)
+- Reste à faire (phase 1) : pousser quand Théo le demande, prévenir Maxime et Adrien, compte Supabase (Théo) avant la phase 4, puis phase 2
 - Prototypes et valeurs vérifiées : script audit_calc.js dans le dossier temporaire de la session (peut être effacé)

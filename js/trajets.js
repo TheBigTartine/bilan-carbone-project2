@@ -437,7 +437,11 @@
         case 'add-stop': { const v = g.vols[+b.dataset.v], { et, mo } = etat(v); et.splice(et.length - 1, 0, ''); mo.splice(mo.length - 1, 0, 'avion'); setEtat(v, et, mo); done(); focusVide(view, b.dataset.g, b.dataset.v); break; }
         case 'add-bus': { const v = g.vols[+b.dataset.v], { et, mo } = etat(v); et.push(''); mo.push('autocar'); setEtat(v, et, mo); done(); focusVide(view, b.dataset.g, b.dataset.v); break; }
         case 'del-stop': { const v = g.vols[+b.dataset.v], { et, mo } = etat(v), i = +b.dataset.e; et.splice(i, 1); mo.splice(i, 1); mo[0] = ''; setEtat(v, et, mo); done(); break; }
-        case 'add-vol': g.vols.push({ label: 'Nouvel itinéraire', route: '', etapes: ['', ''], modes: ['', 'avion'], pax: g.participants, classe: 'eco', ar: true, source: 'Hypothèse' }); done(); break;
+        case 'add-vol': {
+          // Nouvel itinéraire : les participants qui n'en ont pas encore.
+          const reste = Math.max(0, (+g.participants || 0) - g.vols.reduce((s, v) => s + (+v.pax || 0), 0));
+          g.vols.push({ label: 'Nouvel itinéraire', route: '', etapes: ['', ''], modes: ['', 'avion'], pax: reste, classe: 'eco', ar: true, source: 'Hypothèse' }); done(); break;
+        }
         case 'del-vol': if (confirm('Supprimer cet itinéraire ?')) { g.vols.splice(+b.dataset.v, 1); divise = null; done(); } break;
         case 'split-open': {
           divise = `${b.dataset.g}-${b.dataset.v}`; done();

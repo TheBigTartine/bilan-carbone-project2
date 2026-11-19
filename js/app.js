@@ -276,12 +276,16 @@
       const b = e.target.closest('button, a[data-delap]'); if (!b) return;
       if (b.dataset.add) {
         const [gi, k] = b.dataset.add.split('-'); const g = st.groupes[+gi];
+        // Nouveau vol : les participants qui n'ont pas encore d'itinéraire.
+        const reste = Math.max(0, (+g.participants || 0) - g.vols.reduce((s, v) => s + (+v.pax || 0), 0));
         g[k].push(k === 'vols'
-          ? { label: 'Nouveau vol', route: '', pax: g.participants, classe: 'eco', ar: true, source: 'Hypothèse' }
+          ? { label: 'Nouveau vol', route: '', pax: reste, classe: 'eco', ar: true, source: 'Hypothèse' }
           : { label: 'Nouveau trajet', mode: 'autocar', km: 0, pax: g.participants, ar: true, occ: 4, source: 'Hypothèse' });
         save(); render();
       } else if (b.dataset.del) {
-        const [gi, k, i] = b.dataset.del.split('-'); st.groupes[+gi][k].splice(+i, 1); save(); render();
+        const [gi, k, i] = b.dataset.del.split('-');
+        if (!confirm(k === 'vols' ? 'Supprimer ce vol ?' : 'Supprimer ce trajet ?')) return;
+        st.groupes[+gi][k].splice(+i, 1); save(); render();
       } else if (b.dataset.delap) {
         e.preventDefault(); delete st.aeroportsPerso[b.dataset.delap]; save(); render();
       } else if (b.dataset.act === 'add-ap') {
