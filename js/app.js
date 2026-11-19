@@ -459,20 +459,22 @@
         <div class="card" style="--i:0"><h2 class="section">Formule</h2>
           <p>Pour chaque segment de vol : <code>émissions = (distance orthodromique + ${F.correctionKm} km) × facteur ADEME de la tranche × coefficient de classe × passagers × trajets</code>.</p>
           <p class="mt">Pour chaque trajet terrestre : <code>km × trajets × passagers × facteur</code>, ou, pour une voiture, <code>km × trajets × nombre de véhicules × facteur par véhicule</code>.</p>
-          <p class="mt">Le poids d'une correspondance est l'écart entre l'itinéraire réel et un vol direct théorique entre le premier et le dernier aéroport.</p></div>
+          <p class="mt">Le poids d'une correspondance est l'écart entre l'itinéraire réel et un vol direct théorique entre le premier et le dernier aéroport.</p>
+          <p class="mt">Les + ${F.correctionKm} km viennent de l'arrêté du 10 avril 2012 sur l'information GES des prestations de transport : la distance entre deux aéroports est la distance orthodromique augmentée de 95 km.</p></div>
         </div>
         <div class="grid grid-2">
         <div class="card" style="--i:1"><h2 class="section">Facteurs aériens (kgCO2e par passager.km)</h2>
-          <div class="table-wrap"><table><thead><tr><th>Tranche de distance</th><th class="r">Avec traînées</th><th class="r">Sans traînées</th></tr></thead>
-          <tbody>${F.avion.map(a => `<tr><td>${a.label}</td><td class="r num">${nf(a.avec, 4)}</td><td class="r num">${nf(a.sans, 4)}</td></tr>`).join('')}</tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Tranche de distance</th><th class="r">Avec traînées</th><th class="r">Sans traînées</th><th>Identifiants ADEME</th></tr></thead>
+          <tbody>${F.avion.map(a => `<tr><td>${a.label}</td><td class="r num">${nf(a.avec, 4)}</td><td class="r num">${nf(a.sans, 4)}</td><td class="muted">${a.ademe.join(' / ')}</td></tr>`).join('')}</tbody></table></div>
+          <p class="mt" style="font-size:13px">Facteurs « Avion passagers » 2023 de la Base Empreinte. L'ADEME donne un facteur par taille d'avion. Nous avons retenu un avion de 101 à 220 sièges (type A320) jusqu'à 5 000 km, et un gros-porteur de plus de 220 sièges au-delà, car ce sont les avions qui volent en général sur ces distances.</p>
           <div class="mt2">${Viz.escalier(st, Calc.calculer(st))}</div>
-          <div class="note mt"><b>Traînées et effets hors CO2.</b> En altitude, les avions forment des traînées de condensation et émettent des oxydes d'azote, qui réchauffent le climat en plus du CO2. L'ADEME publie deux jeux de facteurs : avec ces effets (environ ×1,8) et sans. Le bilan principal utilise <b>${st.rf ? 'la version avec traînées' : 'la version sans traînées'}</b>. La bascule recalcule tout avec l'autre jeu, sans jamais mélanger les deux.</div></div>
+          <div class="note mt"><b>Traînées et effets hors CO2.</b> En altitude, les avions forment des traînées de condensation et émettent des oxydes d'azote, qui réchauffent le climat en plus du CO2. L'ADEME publie deux jeux de facteurs : avec ces effets et sans. Dans le détail de ses facteurs, le poste « traînées » est égal au poste « combustion » : la combustion est comptée deux fois, mais pas la production du kérosène ni la fabrication de l'avion. Au total, le facteur avec traînées vaut donc environ 1,8 fois le facteur sans traînées. Le bilan principal utilise <b>${st.rf ? 'la version avec traînées' : 'la version sans traînées'}</b>. La bascule recalcule tout avec l'autre jeu, sans jamais mélanger les deux.</div></div>
         <div class="stack">
         <div class="card" style="--i:2"><h2 class="section">Facteurs terrestres</h2>
-          <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th></tr></thead>
-          <tbody>${Object.values(F.terrestre).map(m => `<tr><td>${m.label}</td><td class="r num">${nf(m.f, 4)}</td><td class="muted">${m.parVehicule ? 'par véhicule' : 'par passager'}</td></tr>`).join('')}</tbody></table></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th><th>Source</th></tr></thead>
+          <tbody>${Object.values(F.terrestre).map(m => `<tr><td>${m.label}</td><td class="r num">${nf(m.f, 4)}</td><td class="muted">${m.parVehicule ? 'par véhicule' : 'par passager'}</td><td class="muted">${esc(m.source || '')}</td></tr>`).join('')}</tbody></table></div></div>
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
-          <p>L'ADEME ne distingue pas les classes. Les coefficients suivants viennent du DEFRA (gouvernement britannique) : ils reflètent la place occupée dans l'avion. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
+          <p>L'ADEME ne distingue pas les classes. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
           <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 1)}</li>`).join('')}</ul></div></div></div>
         <div><h2 class="section mt2" id="calculs">Calculs détaillés, segment par segment</h2>
           <p class="muted" style="font-size:13px">Toutes les étapes avec les données saisies (${st.rf ? 'avec' : 'sans'} traînées). Chaque résultat peut être vérifié à la calculatrice.</p>
@@ -480,7 +482,14 @@
         <div class="card" style="--i:4" id="lexique"><h2 class="section">Lexique</h2><p class="muted" style="font-size:13px;margin-bottom:12px">Les mots soulignés en pointillés dans tout le site affichent ces définitions au survol (ou au toucher sur téléphone).</p>${Lexique.lexiqueHTML()}</div>
         <div class="card" style="--i:4"><h2 class="section">Communication responsable</h2>
           <ul><li>Ne pas annoncer de neutralité carbone non démontrée.</li><li>Ne pas présenter des arbres plantés comme des tonnes de CO2 compensées immédiatement.</li><li>Ne jamais additionner émissions évitées, émissions réduites et contributions financées.</li><li>Ne pas confondre un financement environnemental avec un crédit carbone.</li><li>Toujours indiquer la convention retenue (avec ou sans traînées) et les limites.</li></ul></div>
-        <div class="note warn" style="--i:5"><b>À faire par le pôle avant le bilan définitif :</b> vérifier chaque facteur dans la version en vigueur de la <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a> et le corriger dans <code>js/data.js</code> si besoin. Source actuelle : ${esc(F.version)}.</div>
+        <div class="card" style="--i:5"><h2 class="section">Limites</h2>
+          <ul><li>Un facteur ADEME est une moyenne : il ne tient compte ni de la compagnie, ni du taux de remplissage réel du vol.</li>
+          <li>La taille d'avion est choisie selon la distance, pas selon l'avion réellement utilisé. Un petit avion régional émet plus par passager.km.</li>
+          <li>Les + ${F.correctionKm} km sont un forfait : la trajectoire réelle peut être plus longue ou plus courte.</li>
+          <li>L'effet des traînées est incertain : il dépend de l'altitude, de l'humidité et de l'heure du vol. Le coefficient de l'ADEME est une moyenne, d'où l'affichage des deux résultats.</li>
+          <li>Les coefficients de classe viennent d'une autre convention (DEFRA) : ils restent en analyse complémentaire.</li>
+          <li>Le périmètre se limite aux déplacements : hébergement, repas et achats sur place sont exclus.</li></ul></div>
+        <div class="note warn" style="--i:5"><b>Encore à vérifier par le pôle :</b> le facteur du train en Amérique du Nord (pas de valeur ADEME pour les États-Unis ni le Canada) et celui de la voiture thermique et du taxi. Source des autres facteurs : ${esc(F.version)}, <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a>.</div>
       </div>`;
   }
 

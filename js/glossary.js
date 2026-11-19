@@ -25,9 +25,9 @@
       'L’avion ne vole jamais en ligne parfaitement droite : couloirs aériens, attente, approche. L’ADEME ajoute forfaitairement 95 km à la distance orthodromique de chaque vol.' },
     { terme: 'Court-courrier', motifs: ['court-courrier', 'court courrier'], def:
       'Vol de moins de 1 000 km. C’est la tranche qui émet le plus <b>par km</b>, car le décollage et la montée, très gourmands en kérosène, pèsent lourd sur une courte distance.' },
-    { terme: 'Moyen-courrier', motifs: ['moyen-courrier', 'moyen courrier'], def: 'Vol de 1 000 à 3 500 km (ex. Paris–Istanbul).' },
-    { terme: 'Long-courrier', motifs: ['long-courrier', 'long courrier'], def: 'Vol de plus de 3 500 km (ex. Paris–Atlanta). Le plus faible facteur par km, mais de très grandes distances.' },
-    { terme: 'Tranche de distance', motifs: ['tranche de distance', 'tranche'], def: 'L’ADEME classe les vols en trois tranches (court, moyen, long-courrier), avec un facteur d’émission différent pour chacune.' },
+    { terme: 'Moyen-courrier', motifs: ['moyen-courrier', 'moyen courrier'], def: 'Vol de 1 000 à 5 000 km (ex. Paris–Istanbul).' },
+    { terme: 'Long-courrier', motifs: ['long-courrier', 'long courrier'], def: 'Vol de plus de 5 000 km (ex. Paris–Atlanta). Le plus faible facteur par km, mais de très grandes distances.' },
+    { terme: 'Tranche de distance', motifs: ['tranche de distance', 'tranche'], def: 'L’ADEME (facteurs 2023) classe les vols en cinq tranches : moins de 500 km, 500 à 1 000, 1 000 à 2 000, 2 000 à 5 000 et plus de 5 000 km, avec un facteur d’émission différent pour chacune.' },
     { terme: 'Segment', motifs: ['segments', 'segment'], def: 'Un vol entre deux aéroports, du décollage à l’atterrissage. Un itinéraire MRS-CDG-YUL compte 2 segments.' },
     { terme: 'Correspondance', motifs: ['correspondances', 'correspondance', 'escales', 'escale'], def:
       'Changement d’avion en cours de route. Chaque escale ajoute un décollage (la phase la plus émettrice) et souvent un détour. Son « poids » est l’écart avec un vol direct.' },

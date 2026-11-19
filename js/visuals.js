@@ -128,7 +128,7 @@
         ${row.n > 1 ? `<div class="anat-bar ghost"><span style="width:${row.direct / max * 100}%" data-tip="Vol direct théorique ${row.legs[0].l.from.code} → ${row.legs[row.n - 1].l.to.code} : ${nf(row.direct, 0)} kg">Direct théorique · ${nf(row.direct, 0)} kg</span></div>
         <div class="anat-diff">+ ${nf(row.sum - row.direct, 0)} kg par passager et par aller à cause de ${row.n - 1} correspondance${row.n > 2 ? 's' : ''} (+${nf((row.sum / row.direct - 1) * 100, 0)} %)</div>` : ''}
       </div>`).join('')}</div>
-      <div class="legend mt"><span><i class="dot" style="background:var(--c-corr)"></i>Court-courrier (&lt; 1 000 km)</span><span><i class="dot" style="background:var(--c-ground)"></i>Moyen-courrier</span><span><i class="dot" style="background:var(--c-air)"></i>Long-courrier (&gt; 3 500 km)</span><span class="faint">Émissions par passager, pour un aller</span></div>`;
+      <div class="legend mt"><span><i class="dot" style="background:var(--c-corr)"></i>Court-courrier (&lt; 1 000 km)</span><span><i class="dot" style="background:var(--c-ground)"></i>Moyen-courrier (1 000 – 5 000 km)</span><span><i class="dot" style="background:var(--c-air)"></i>Long-courrier (&gt; 5 000 km)</span><span class="faint">Émissions par passager, pour un aller</span></div>`;
   }
 
   // ---------------------------------------------------------------------
