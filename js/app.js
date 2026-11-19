@@ -512,6 +512,7 @@
     old.replaceWith(view);
     ROUTES[name][1](view);
     Lexique.annoter(view);
+    Viz.hydrateMaps(view);
     view.addEventListener('click', e => {
       const b = e.target.closest('[data-rf]'); if (!b) return;
       st.rf = b.dataset.rf === '1'; save(); render(true);
@@ -581,7 +582,7 @@
     s.setProperty('--vx', e.clientX + 'px'); s.setProperty('--vy', e.clientY + 'px');
     s.setProperty('--vr', Math.hypot(Math.max(e.clientX, innerWidth - e.clientX), Math.max(e.clientY, innerHeight - e.clientY)) + 'px');
     document.documentElement.classList.add('vt-theme');
-    document.startViewTransition(apply).finished.finally(() => document.documentElement.classList.remove('vt-theme'));
+    const vt = document.startViewTransition(apply); vt.ready.catch(() => {}); vt.finished.catch(() => {}).finally(() => document.documentElement.classList.remove('vt-theme'));
   });
 
   // ---------- Écran de démarrage ----------
@@ -604,7 +605,7 @@
     let done = false;
     const vt = document.startViewTransition(() => { done = true; render(); });
     vt.updateCallbackDone.catch(() => { if (!done) render(); });
-    vt.finished.catch(() => {});
+    vt.ready.catch(() => {}); vt.finished.catch(() => {});
   });
   render();
   splash();
