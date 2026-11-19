@@ -94,44 +94,49 @@
     const gc = [col('--c-kelley'), col('--c-hec')];
     const direct = r.air - r.corr;
     const repere = r.parEtudiant / F.reperes.objectifParisKg;
+    const eqv = Viz.equivalences(r);
     return `
       <div class="head"><div><div class="page-title">Study Tours 2026-2027 · ${r.participants} étudiants</div><h1 style="font-size:28px">Empreinte carbone des mobilités</h1></div>${seg()}</div>
-      <div class="card glass hero-card tilt" style="--i:0">
-        <div>
-          <div class="page-title">Bilan global · ${st.rf ? 'avec' : 'sans'} traînées</div>
-          <div class="hero-value num" data-count="${t(r.total)}">${t(r.total)} <small>tCO2e</small></div>
-          <div class="hero-sub"><span class="pill accent">${t(r.parEtudiant, 2)} t par étudiant</span><span>soit ${nf(repere, 1)} an${repere >= 2 ? 's' : ''} de budget carbone « Accord de Paris » (2 t/an)</span></div>
-          <div class="group-bar">
-            ${r.groupes.map((g, i) => `<div class="row"><span class="muted">${esc(g.nom.split(' (')[0])}</span><div class="track"><div class="fill" style="width:${g.total / max * 100}%;background:${gc[i]};animation-delay:${200 + i * 120}ms"></div></div><span class="num r" style="text-align:right;font-weight:600">${t(g.total)} t</span></div>`).join('')}
+      <div class="dash-top">
+        <div class="card glass hero-card tilt" style="--i:0">
+          <div class="hero-main">
+            <div class="page-title">Bilan global · ${st.rf ? 'avec' : 'sans'} traînées</div>
+            <div class="hero-value num" data-count="${t(r.total)}">${t(r.total)} <small>tCO2e</small></div>
+            <div class="hero-sub"><span class="pill accent">${t(r.parEtudiant, 2)} t par étudiant</span><span>soit ${nf(repere, 1)} an${repere >= 2 ? 's' : ''} de budget carbone « Accord de Paris » (2 t/an)</span></div>
+            <div class="group-bar">
+              ${r.groupes.map((g, i) => `<div class="row"><span class="muted">${esc(g.nom.split(' (')[0])}</span><div class="track"><div class="fill" style="width:${g.total / max * 100}%;background:${gc[i]};animation-delay:${200 + i * 120}ms"></div></div><span class="num r" style="text-align:right;font-weight:600">${t(g.total)} t</span></div>`).join('')}
+            </div>
+            <div class="split">
+              <span style="width:${r.total ? direct / r.total * 100 : 0}%;background:var(--c-air)"></span>
+              <span style="width:${r.total ? r.corr / r.total * 100 : 0}%;background:var(--c-corr);animation-delay:120ms"></span>
+              <span style="width:${r.total ? r.terrestre / r.total * 100 : 0}%;background:var(--c-ground);animation-delay:240ms"></span>
+            </div>
+            <div class="legend"><span><i class="dot" style="background:var(--c-air)"></i>Vols (équivalent direct) · ${t(direct)} t</span><span><i class="dot" style="background:var(--c-corr)"></i>Correspondances · ${t(r.corr)} t</span><span><i class="dot" style="background:var(--c-ground)"></i>Terrestre · ${t(r.terrestre)} t</span></div>
           </div>
+          <div class="ring-wrap"><div class="ring" id="ring"></div><div class="ring-label"><div><span class="num" data-count="${nf(r.partAir * 100, 1)} %">${nf(r.partAir * 100, 1)} %</span><small>aérien</small></div></div></div>
         </div>
-        <div class="ring-wrap"><div class="ring" id="ring"></div><div class="ring-label"><div><span class="num" data-count="${nf(r.partAir * 100, 1)} %">${nf(r.partAir * 100, 1)} %</span><small>aérien</small></div></div></div>
+        <div class="grid grid-2 kpis">
+          ${kpi('Kelley University', k.total, `${t(k.parEtudiant, 2)} t / étudiant · ${k.participants} pers.`, gc[0], 1)}
+          ${kpi('HEC Montréal', h.total, `${t(h.parEtudiant, 2)} t / étudiant · ${h.participants} pers.`, gc[1], 2)}
+          ${kpi('Poids des correspondances', r.corr, `${pct(r.total ? r.corr / r.total : 0)} du total, par rapport à des vols directs`, col('--c-corr'), 3)}
+          ${kpi('Déplacements terrestres', r.terrestre, `${pct(r.total ? r.terrestre / r.total : 0)} du total`, col('--c-ground'), 4)}
+        </div>
       </div>
       ${hypoNote(r)}${errNote(r)}
-      <div class="grid grid-4 mt">
-        ${kpi('Kelley University', k.total, `${t(k.parEtudiant, 2)} t / étudiant · ${k.participants} pers.`, gc[0], 1)}
-        ${kpi('HEC Montréal', h.total, `${t(h.parEtudiant, 2)} t / étudiant · ${h.participants} pers.`, gc[1], 2)}
-        ${kpi('Poids des correspondances', r.corr, `${pct(r.total ? r.corr / r.total : 0)} du total, par rapport à des vols directs`, col('--c-corr'), 3)}
-        ${kpi('Déplacements terrestres', r.terrestre, `${pct(r.total ? r.terrestre / r.total : 0)} du total`, col('--c-ground'), 4)}
+      <div class="grid grid-2 mt">
+        <div class="card" style="--i:5"><h2 class="section">Carte des trajets</h2><p class="muted sub">Chaque trait est un segment de vol ; plus il est épais, plus il émet.</p>${Viz.carte(st, r)}</div>
+        <div class="card" style="--i:6"><h2 class="section">D'où viennent les tonnes ?</h2><p class="muted sub">Du total vers chaque groupe, puis vers chaque poste. Survoler un flux pour le chiffre.</p>${Viz.flux(r)}</div>
       </div>
-      <div class="grid grid-main mt">
-        <div class="card" style="--i:5"><h2 class="section">Répartition par poste et par groupe</h2><div class="chart-box"><canvas id="c-postes"></canvas></div></div>
-        <div class="card" style="--i:6"><h2 class="section">Effet des traînées (hors CO2)</h2>
+      <div class="grid grid-3 mt charts-row">
+        <div class="card" style="--i:7"><h2 class="section">Répartition par poste et par groupe</h2><div class="chart-box"><canvas id="c-postes"></canvas></div></div>
+        <div class="card" style="--i:8"><h2 class="section">Effet des traînées (hors CO2)</h2>
           <div class="chart-box sm"><canvas id="c-rf"></canvas></div>
-          <p class="muted mt" style="font-size:12.5px">Avec traînées : <b>${t(st.rf ? r.total : alt.total)} t</b> · sans : <b>${t(st.rf ? alt.total : r.total)} t</b>. Les deux conventions ne se mélangent jamais : la bascule recalcule tout le bilan.</p></div>
+          <p class="muted mt" style="font-size:12.5px">Avec traînées : <b>${t(st.rf ? r.total : alt.total)} t</b> · sans : <b>${t(st.rf ? alt.total : r.total)} t</b>. Les deux conventions ne se mélangent jamais.</p></div>
+        ${eqv.waffle}
       </div>
-      <div class="card mt" style="--i:7"><h2 class="section">Carte des trajets</h2><p class="muted" style="font-size:12.5px;margin:-6px 0 10px">Chaque trait est un segment de vol ; plus il est épais, plus il émet.</p>${Viz.carte(st, r)}</div>
-      <div class="card mt" style="--i:8"><h2 class="section">D'où viennent les tonnes ?</h2><p class="muted" style="font-size:12.5px;margin:-6px 0 10px">Du total vers chaque groupe, puis vers chaque poste. Survoler un flux pour le chiffre.</p>${Viz.flux(r)}</div>
-      <div class="card mt" style="--i:9"><h2 class="section">Anatomie d'un voyage</h2><p class="muted" style="font-size:12.5px;margin:-6px 0 12px">Émissions d'un passager pour un aller, segment par segment, comparées à un vol direct.</p>${Viz.anatomie(st, r)}</div>
-      <h2 class="section mt2">Pour se représenter ${t(r.parEtudiant, 2)} t par étudiant</h2>
-      ${Viz.equivalences(r)}
-      <div class="card mt" style="--i:7"><h2 class="section">Où partent les émissions ?</h2>
-        <div class="split">
-          <span style="width:${r.total ? direct / r.total * 100 : 0}%;background:var(--c-air)"></span>
-          <span style="width:${r.total ? r.corr / r.total * 100 : 0}%;background:var(--c-corr);animation-delay:120ms"></span>
-          <span style="width:${r.total ? r.terrestre / r.total * 100 : 0}%;background:var(--c-ground);animation-delay:240ms"></span>
-        </div>
-        <div class="legend"><span><i class="dot" style="background:var(--c-air)"></i>Vols (équivalent direct) · ${t(direct)} t</span><span><i class="dot" style="background:var(--c-corr)"></i>Surplus des correspondances · ${t(r.corr)} t</span><span><i class="dot" style="background:var(--c-ground)"></i>Terrestre · ${t(r.terrestre)} t</span></div>
+      <div class="grid grid-anat mt">
+        <div class="card" style="--i:9"><h2 class="section">Anatomie d'un voyage</h2><p class="muted sub">Émissions d'un passager pour un aller, segment par segment, comparées à un vol direct.</p>${Viz.anatomie(st, r)}</div>
+        <div class="eq-col"><h2 class="section">Pour se représenter ${t(r.parEtudiant, 2)} t par étudiant</h2><div class="eq-stack">${eqv.tiles}</div></div>
       </div>`;
   }
   function aSynthese() {
@@ -318,7 +323,7 @@
     const plants = st.coutPlant > 0 ? Math.floor(budget / st.coutPlant) : 0;
     return `
       <div class="head"><div><div class="page-title">Mesurer, éviter, réduire, puis contribuer</div><h1 style="font-size:28px">Simulateur de scénarios</h1></div>${seg()}</div>
-      <div class="card" style="--i:0;margin-bottom:12px"><h2 class="section">La démarche imposée par le cahier des charges</h2>${Viz.demarche(red > 0.5 ? [0, 2, 3] : [0, 3])}</div>
+      <div class="card" style="--i:0;margin-bottom:12px;padding:12px 14px">${Viz.demarche(red > 0.5 ? [0, 2, 3] : [0, 3])}</div>
       <div class="grid grid-3">
         <div class="card tilt" style="--i:0"><div class="kpi-label">Bilan mesuré</div><div class="kpi-value num" data-count="${t(base.total)}">${t(base.total)} <small>tCO2e</small></div><div class="kpi-sub">Situation saisie, sans aucune mesure</div></div>
         <div class="card tilt" style="--i:1"><div class="kpi-label"><span class="dot" style="background:var(--accent)"></span>Réduction potentielle</div><div class="kpi-value num" style="color:var(--accent)" data-count="${t(red)}">${t(red)} <small>tCO2e</small></div><div class="kpi-sub">${pct(base.total ? red / base.total : 0)} du bilan, si les mesures cochées sont appliquées</div></div>
@@ -402,8 +407,10 @@
           <div class="card" style="--i:2"><h3 style="margin-bottom:8px"><span class="dot" style="background:var(--c-hec)"></span> ${esc(h.nom)}</h3>${table(h)}</div>
         </div>
 
-        <div class="card mt" style="--i:3"><h3 style="margin-bottom:10px">Flux des émissions</h3>${Viz.flux(r)}</div>
-        <div class="card mt" style="--i:4"><h3 style="margin-bottom:10px">Carte des trajets</h3>${Viz.carte(st, r)}</div>
+        <div class="grid grid-2 mt">
+          <div class="card" style="--i:3"><h3 style="margin-bottom:10px">Flux des émissions</h3>${Viz.flux(r)}</div>
+          <div class="card" style="--i:4"><h3 style="margin-bottom:10px">Carte des trajets</h3>${Viz.carte(st, r)}</div>
+        </div>
 
         <h2>2. Réponses aux questions du cahier des charges</h2>
         <p class="q">Quel groupe génère le plus d'émissions ?</p>
@@ -447,29 +454,44 @@
       <div class="head"><div><div class="page-title">Note méthodologique</div><h1 style="font-size:28px">Comment le bilan est calculé</h1></div></div>
       <div class="method stack">
         <div class="card" style="--i:0"><h2 class="section">La chaîne de calcul</h2>${Viz.chaine()}</div>
+        <div class="grid grid-2">
         <div class="card" style="--i:0"><h2 class="section">Pourquoi + ${F.correctionKm} km ?</h2>${Viz.schemaDistance()}</div>
         <div class="card" style="--i:0"><h2 class="section">Formule</h2>
           <p>Pour chaque segment de vol : <code>émissions = (distance orthodromique + ${F.correctionKm} km) × facteur ADEME de la tranche × coefficient de classe × passagers × trajets</code>.</p>
           <p class="mt">Pour chaque trajet terrestre : <code>km × trajets × passagers × facteur</code>, ou, pour une voiture, <code>km × trajets × nombre de véhicules × facteur par véhicule</code>.</p>
-          <p class="mt">Le poids d'une correspondance est l'écart entre l'itinéraire réel et un vol direct théorique entre le premier et le dernier aéroport.</p></div>
+          <p class="mt">Le poids d'une correspondance est l'écart entre l'itinéraire réel et un vol direct théorique entre le premier et le dernier aéroport.</p>
+          <p class="mt">Les + ${F.correctionKm} km viennent de la réglementation sur l'information CO2 des prestations de transport (article L. 1431-3 du code des transports et guide méthodologique du ministère de l'Écologie) : la distance entre deux aéroports est la distance orthodromique augmentée de 95 km.</p></div>
+        </div>
+        <div class="grid grid-2">
         <div class="card" style="--i:1"><h2 class="section">Facteurs aériens (kgCO2e par passager.km)</h2>
-          <div class="table-wrap"><table><thead><tr><th>Tranche de distance</th><th class="r">Avec traînées</th><th class="r">Sans traînées</th></tr></thead>
-          <tbody>${F.avion.map(a => `<tr><td>${a.label}</td><td class="r num">${nf(a.avec, 4)}</td><td class="r num">${nf(a.sans, 4)}</td></tr>`).join('')}</tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Tranche de distance</th><th class="r">Avec traînées</th><th class="r">Sans traînées</th><th>Identifiants ADEME</th></tr></thead>
+          <tbody>${F.avion.map(a => `<tr><td>${a.label}</td><td class="r num">${nf(a.avec, 4)}</td><td class="r num">${nf(a.sans, 4)}</td><td class="muted">${a.ademe.join(' / ')}</td></tr>`).join('')}</tbody></table></div>
+          <p class="mt" style="font-size:13px">Facteurs « Avion passagers » 2023 de la Base Empreinte. L'ADEME donne un facteur par taille d'avion. Nous avons retenu un avion de 101 à 220 sièges (type A320) jusqu'à 5 000 km, et un gros-porteur de plus de 220 sièges au-delà, car ce sont les avions qui volent en général sur ces distances.</p>
           <div class="mt2">${Viz.escalier(st, Calc.calculer(st))}</div>
-          <div class="note mt"><b>Traînées et effets hors CO2.</b> En altitude, les avions forment des traînées de condensation et émettent des oxydes d'azote, qui réchauffent le climat en plus du CO2. L'ADEME publie deux jeux de facteurs : avec ces effets (environ ×1,8) et sans. Le bilan principal utilise <b>${st.rf ? 'la version avec traînées' : 'la version sans traînées'}</b>. La bascule recalcule tout avec l'autre jeu, sans jamais mélanger les deux.</div></div>
+          <div class="note mt"><b>Traînées et effets hors CO2.</b> En altitude, les avions forment des traînées de condensation et émettent des oxydes d'azote, qui réchauffent le climat en plus du CO2. L'ADEME publie deux jeux de facteurs : avec ces effets et sans. Dans le détail de ses facteurs, le poste « traînées » est égal au poste « combustion » : la combustion est comptée deux fois, mais pas la production du kérosène ni la fabrication de l'avion. Au total, le facteur avec traînées vaut donc environ 1,8 fois le facteur sans traînées. Le bilan principal utilise <b>${st.rf ? 'la version avec traînées' : 'la version sans traînées'}</b>. La bascule recalcule tout avec l'autre jeu, sans jamais mélanger les deux.</div></div>
+        <div class="stack">
         <div class="card" style="--i:2"><h2 class="section">Facteurs terrestres</h2>
-          <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th></tr></thead>
-          <tbody>${Object.values(F.terrestre).map(m => `<tr><td>${m.label}</td><td class="r num">${nf(m.f, 4)}</td><td class="muted">${m.parVehicule ? 'par véhicule' : 'par passager'}</td></tr>`).join('')}</tbody></table></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th><th>Source</th></tr></thead>
+          <tbody>${Object.values(F.terrestre).map(m => `<tr><td>${m.label}</td><td class="r num">${nf(m.f, 4)}</td><td class="muted">${m.parVehicule ? 'par véhicule' : 'par passager'}</td><td class="muted">${esc(m.source || '')}</td></tr>`).join('')}</tbody></table></div></div>
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
-          <p>L'ADEME ne distingue pas les classes. Les coefficients suivants viennent du DEFRA (gouvernement britannique) : ils reflètent la place occupée dans l'avion. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
-          <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 1)}</li>`).join('')}</ul></div>
+          <p>L'ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Chaque coefficient est le rapport entre le facteur DEFRA de la classe et celui du siège moyen. La classe économique reste à 1, c'est-à-dire au facteur ADEME. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
+          <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 2)}</li>`).join('')}</ul></div></div></div>
         <div><h2 class="section mt2" id="calculs">Calculs détaillés, segment par segment</h2>
           <p class="muted" style="font-size:13px">Toutes les étapes avec les données saisies (${st.rf ? 'avec' : 'sans'} traînées). Chaque résultat peut être vérifié à la calculatrice.</p>
           ${Viz.detail(st, Calc.calculer(st))}</div>
         <div class="card" style="--i:4" id="lexique"><h2 class="section">Lexique</h2><p class="muted" style="font-size:13px;margin-bottom:12px">Les mots soulignés en pointillés dans tout le site affichent ces définitions au survol (ou au toucher sur téléphone).</p>${Lexique.lexiqueHTML()}</div>
         <div class="card" style="--i:4"><h2 class="section">Communication responsable</h2>
           <ul><li>Ne pas annoncer de neutralité carbone non démontrée.</li><li>Ne pas présenter des arbres plantés comme des tonnes de CO2 compensées immédiatement.</li><li>Ne jamais additionner émissions évitées, émissions réduites et contributions financées.</li><li>Ne pas confondre un financement environnemental avec un crédit carbone.</li><li>Toujours indiquer la convention retenue (avec ou sans traînées) et les limites.</li></ul></div>
-        <div class="note warn" style="--i:5"><b>À faire par le pôle avant le bilan définitif :</b> vérifier chaque facteur dans la version en vigueur de la <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a> et le corriger dans <code>js/data.js</code> si besoin. Source actuelle : ${esc(F.version)}.</div>
+        <div class="card" style="--i:5"><h2 class="section">Limites</h2>
+          <ul><li>Un facteur ADEME est une moyenne : il ne tient compte ni de la compagnie, ni du taux de remplissage réel du vol.</li>
+          <li>La taille d'avion est choisie selon la distance, pas selon l'avion réellement utilisé. Un petit avion régional émet plus par passager.km.</li>
+          <li>Les + ${F.correctionKm} km sont un forfait : la trajectoire réelle peut être plus longue ou plus courte.</li>
+          <li>L'effet des traînées est incertain : il dépend de l'altitude, de l'humidité et de l'heure du vol. Le coefficient de l'ADEME est une moyenne, d'où l'affichage des deux résultats.</li>
+          <li>Les coefficients de classe viennent d'une autre convention (DEFRA) : ils restent en analyse complémentaire.</li>
+          <li>Le train en Amérique du Nord vient de l'EPA (agence américaine de l'environnement), car l'ADEME n'a pas de facteur pour ce pays. L'EPA ne compte que les émissions du train, pas la production du carburant : ce facteur est un peu sous-estimé par rapport à ceux de l'ADEME.</li>
+          <li>La voiture et le taxi utilisent le facteur d'une voiture moyenne française. Une voiture américaine consomme en général plus, et un taxi roule aussi à vide entre deux clients : ces trajets sont un peu sous-estimés.</li>
+          <li>Le périmètre se limite aux déplacements : hébergement, repas et achats sur place sont exclus.</li></ul></div>
+        <div class="note" style="--i:5"><b>Sources :</b> ${esc(F.version)}, <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a>. Train en Amérique du Nord : <a href="https://www.epa.gov/climateleadership/ghg-emission-factors-hub" target="_blank" rel="noopener">EPA, GHG Emission Factors Hub 2025</a>.</div>
       </div>`;
   }
 
@@ -490,6 +512,7 @@
     old.replaceWith(view);
     ROUTES[name][1](view);
     Lexique.annoter(view);
+    Viz.hydrateMaps(view);
     view.addEventListener('click', e => {
       const b = e.target.closest('[data-rf]'); if (!b) return;
       st.rf = b.dataset.rf === '1'; save(); render(true);
@@ -559,7 +582,7 @@
     s.setProperty('--vx', e.clientX + 'px'); s.setProperty('--vy', e.clientY + 'px');
     s.setProperty('--vr', Math.hypot(Math.max(e.clientX, innerWidth - e.clientX), Math.max(e.clientY, innerHeight - e.clientY)) + 'px');
     document.documentElement.classList.add('vt-theme');
-    document.startViewTransition(apply).finished.finally(() => document.documentElement.classList.remove('vt-theme'));
+    const vt = document.startViewTransition(apply); vt.ready.catch(() => {}); vt.finished.catch(() => {}).finally(() => document.documentElement.classList.remove('vt-theme'));
   });
 
   // ---------- Écran de démarrage ----------
@@ -582,7 +605,7 @@
     let done = false;
     const vt = document.startViewTransition(() => { done = true; render(); });
     vt.updateCallbackDone.catch(() => { if (!done) render(); });
-    vt.finished.catch(() => {});
+    vt.ready.catch(() => {}); vt.finished.catch(() => {});
   });
   render();
   splash();

@@ -4,35 +4,51 @@
    Pour modifier un facteur, changer la valeur ici : tout le site se recalcule. */
 
 window.FACTEURS = {
-  version: 'ADEME Base Empreinte (valeurs de référence, à vérifier par le pôle)',
-  // Correction ADEME : distance orthodromique + 95 km (détours, attentes, approche).
+  version: 'ADEME Base Empreinte, facteurs « Avion passagers » 2023 (vérifiés le 19/11/2026 sur data.ademe.fr)',
+  // Correction : distance orthodromique + 95 km (détours, attentes, approche).
+  // Source : ministère de l'Écologie, guide « Information CO2 des prestations de transport » (application de
+  // l'article L. 1431-3 du code des transports). Article réglementaire exact à confirmer sur Légifrance.
   correctionKm: 95,
-  // kgCO2e par passager.km, selon la distance du segment.
+  // kgCO2e par passager.km, selon la distance du segment (Base Empreinte, « Avion passagers », 2023).
+  // L'ADEME donne un facteur par taille d'avion. Choix du pôle : 101-220 sièges (type A320) jusqu'à 5 000 km,
+  // plus de 220 sièges (gros-porteur) au-delà.
+  // id = famille d'affichage (couleurs des schémas) : court < 1 000 km, moyen 1 000 – 5 000 km, long > 5 000 km.
+  // ADEME = identifiants Base Empreinte [avec traînées, sans traînées].
   avion: [
-    { id: 'court', label: 'Court-courrier (< 1 000 km)', max: 1000, avec: 0.2586, sans: 0.1416 },
-    { id: 'moyen', label: 'Moyen-courrier (1 000 – 3 500 km)', max: 3500, avec: 0.1875, sans: 0.1022 },
-    { id: 'long', label: 'Long-courrier (> 3 500 km)', max: Infinity, avec: 0.1520, sans: 0.0830 }
+    { id: 'court', label: '< 500 km (101-220 sièges)', max: 500, avec: 0.289, sans: 0.159, ademe: [43745, 43746] },
+    { id: 'court', label: '500 – 1 000 km (101-220 sièges)', max: 1000, avec: 0.225, sans: 0.124, ademe: [43743, 43744] },
+    { id: 'moyen', label: '1 000 – 2 000 km (101-220 sièges)', max: 2000, avec: 0.185, sans: 0.102, ademe: [43741, 43742] },
+    { id: 'moyen', label: '2 000 – 5 000 km (101-220 sièges)', max: 5000, avec: 0.167, sans: 0.0918, ademe: [43747, 43748] },
+    { id: 'long', label: '> 5 000 km (plus de 220 sièges)', max: Infinity, avec: 0.151, sans: 0.0832, ademe: [43773, 43774] }
   ],
-  // Coefficient par classe. ADEME ne distingue pas les classes : ces ratios viennent du DEFRA (UK).
+  // Coefficient par classe. ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen.
+  // Source : DESNZ (UK), « Greenhouse gas reporting: conversion factors 2025 », vols long-courriers, kgCO2e/passager.km :
+  // siège moyen 0,15282 ; éco 0,11704 ; premium 0,18726 ; affaires 0,33940 ; première 0,46814.
+  // Coefficient = facteur de la classe ÷ siège moyen (ex. affaires : 0,33940 ÷ 0,15282 = 2,22).
+  // L'éco reste à 1 (facteur ADEME tel quel) : choix prudent, qui ne baisse pas le bilan.
   // C'est une autre convention, donc ils ne servent qu'en analyse complémentaire (voir Méthodologie).
   classes: {
     eco: { label: 'Économique', coef: 1 },
-    premium: { label: 'Premium éco', coef: 1.6 },
-    affaires: { label: 'Affaires', coef: 2.9 },
-    premiere: { label: 'Première', coef: 4.0 }
+    premium: { label: 'Premium éco', coef: 1.23 },
+    affaires: { label: 'Affaires', coef: 2.22 },
+    premiere: { label: 'Première', coef: 3.06 }
   },
   // Modes terrestres. parVehicule = facteur au km par véhicule (divisé ensuite par le nombre d'occupants).
+  // source = élément de la Base Empreinte (identifiant), ou mention « à vérifier » quand le pôle n'a pas encore de source.
   terrestre: {
-    tgv: { label: 'TGV', f: 0.00293 },
-    intercites: { label: 'Intercités', f: 0.00898 },
-    ter: { label: 'TER', f: 0.0296 },
-    train_us: { label: 'Train (Amérique du Nord)', f: 0.041 },
-    autocar: { label: 'Autocar / navette', f: 0.0295 },
-    bus: { label: 'Bus urbain', f: 0.113 },
-    metro: { label: 'Métro / tram', f: 0.0044 },
-    voiture: { label: 'Voiture thermique', f: 0.218, parVehicule: true },
-    voiture_elec: { label: 'Voiture électrique', f: 0.103, parVehicule: true },
-    taxi: { label: 'Taxi / VTC', f: 0.218, parVehicule: true }
+    tgv: { label: 'TGV', f: 0.00293, source: 'ADEME 43256 (TGV, 2022)' },
+    intercites: { label: 'Intercités', f: 0.0075, source: 'ADEME 43272 (Intercités, 2022)' },
+    ter: { label: 'TER', f: 0.0277, source: 'ADEME 43255 (TER, traction moyenne, 2022)' },
+    // EPA, GHG Emission Factors Hub 2025, table 10, « Intercity Rail – Other Routes » (hors corridor Nord-Est) :
+    // 0,149 kg CO2 + 0,012 g CH4 + 0,004 g N2O par passager-mile (PRG 28 et 265) = 0,150 kgCO2e ÷ 1,609 km.
+    train_us: { label: 'Train (Amérique du Nord)', f: 0.093, source: 'EPA, GHG Emission Factors Hub 2025, Amtrak hors corridor Nord-Est (pas de facteur ADEME)' },
+    autocar: { label: 'Autocar / navette', f: 0.0376, source: 'ADEME 43740 (Autocar, gazole)' },
+    bus: { label: 'Bus urbain', f: 0.122, source: 'ADEME 43739 (Autobus, gazole)' },
+    metro: { label: 'Métro / tram', f: 0.00442, source: 'ADEME 43778 (Métro, Île-de-France, 2022)' },
+    // ADEME 43791 : amont 0,053 + combustion 0,161 + fabrication 0,041 = 0,256 kgCO2e par km de véhicule.
+    voiture: { label: 'Voiture thermique', f: 0.256, parVehicule: true, source: 'ADEME 43791 (Voiture, motorisation moyenne, 2023)' },
+    voiture_elec: { label: 'Voiture électrique', f: 0.103, parVehicule: true, source: 'ADEME 28007 (Voiture particulière compacte, électrique)' },
+    taxi: { label: 'Taxi / VTC', f: 0.256, parVehicule: true, source: 'ADEME 43791, comme la voiture (pas de facteur ADEME propre au taxi)' }
   },
   // Repères pédagogiques (affichés avec leur source, sans les additionner au bilan).
   reperes: {

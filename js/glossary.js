@@ -25,9 +25,9 @@
       'L’avion ne vole jamais en ligne parfaitement droite : couloirs aériens, attente, approche. L’ADEME ajoute forfaitairement 95 km à la distance orthodromique de chaque vol.' },
     { terme: 'Court-courrier', motifs: ['court-courrier', 'court courrier'], def:
       'Vol de moins de 1 000 km. C’est la tranche qui émet le plus <b>par km</b>, car le décollage et la montée, très gourmands en kérosène, pèsent lourd sur une courte distance.' },
-    { terme: 'Moyen-courrier', motifs: ['moyen-courrier', 'moyen courrier'], def: 'Vol de 1 000 à 3 500 km (ex. Paris–Istanbul).' },
-    { terme: 'Long-courrier', motifs: ['long-courrier', 'long courrier'], def: 'Vol de plus de 3 500 km (ex. Paris–Atlanta). Le plus faible facteur par km, mais de très grandes distances.' },
-    { terme: 'Tranche de distance', motifs: ['tranche de distance', 'tranche'], def: 'L’ADEME classe les vols en trois tranches (court, moyen, long-courrier), avec un facteur d’émission différent pour chacune.' },
+    { terme: 'Moyen-courrier', motifs: ['moyen-courrier', 'moyen courrier'], def: 'Vol de 1 000 à 5 000 km (ex. Paris–Istanbul).' },
+    { terme: 'Long-courrier', motifs: ['long-courrier', 'long courrier'], def: 'Vol de plus de 5 000 km (ex. Paris–Atlanta). Le plus faible facteur par km, mais de très grandes distances.' },
+    { terme: 'Tranche de distance', motifs: ['tranche de distance', 'tranche'], def: 'L’ADEME (facteurs 2023) classe les vols en cinq tranches : moins de 500 km, 500 à 1 000, 1 000 à 2 000, 2 000 à 5 000 et plus de 5 000 km, avec un facteur d’émission différent pour chacune.' },
     { terme: 'Segment', motifs: ['segments', 'segment'], def: 'Un vol entre deux aéroports, du décollage à l’atterrissage. Un itinéraire MRS-CDG-YUL compte 2 segments.' },
     { terme: 'Correspondance', motifs: ['correspondances', 'correspondance', 'escales', 'escale'], def:
       'Changement d’avion en cours de route. Chaque escale ajoute un décollage (la phase la plus émettrice) et souvent un détour. Son « poids » est l’écart avec un vol direct.' },
@@ -37,7 +37,7 @@
     { terme: 'Code IATA', motifs: ['codes IATA', 'code IATA', 'IATA'], def: 'Code à 3 lettres attribué à chaque aéroport par l’association internationale du transport aérien : MRS = Marseille, CDG = Paris-Charles de Gaulle, YUL = Montréal, IND = Indianapolis.' },
     { terme: 'A/R', motifs: ['A/R', 'aller-retour', 'allers-retours'], def: 'Aller-retour : le trajet est compté deux fois.' },
     { terme: 'Classe de voyage', motifs: ['coefficients par classe', 'coefficient de classe', 'classe économique', 'Premium éco'], def:
-      'Un siège en classe affaires occupe plus de place dans l’avion : on lui attribue une plus grande part des émissions du vol (×2,9 environ). L’ADEME ne fait pas cette distinction.' },
+      'Un siège en classe affaires occupe plus de place dans l’avion : on lui attribue une plus grande part des émissions du vol (×2,2 environ par rapport à un siège moyen). L’ADEME ne fait pas cette distinction.' },
     { terme: 'DEFRA', motifs: ['DEFRA'], def: 'Ministère britannique de l’environnement. Il publie ses propres facteurs d’émission, dont des coefficients par classe. C’est une <b>autre convention</b> que l’ADEME : à ne pas mélanger dans le bilan principal.' },
     { terme: 'Convention', motifs: ['conventions', 'convention'], def: 'Un ensemble de choix de calcul (source des facteurs, prise en compte des traînées…). Deux résultats calculés avec des conventions différentes ne se comparent ni ne s’additionnent.' },
     { terme: 'Périmètre', motifs: ['périmètre principal', 'périmètre'], def: 'Ce que le bilan inclut. Ici : les vols et les déplacements terrestres. Exclus : hébergement, repas, achats sur place (possible en analyse complémentaire).' },

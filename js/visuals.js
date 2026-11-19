@@ -9,11 +9,32 @@
   const BAND = { court: 'var(--c-corr)', moyen: 'var(--c-ground)', long: 'var(--c-air)' };
 
   // ---------------------------------------------------------------------
-  // 1. Carte des trajets (projection équirectangulaire simplifiée)
+  // 1. Carte des trajets : vrai fond de carte (pays du monde, Natural Earth 1:50 m via world-atlas),
+  //    projection conique conforme, routes tracées en arcs de grand cercle (orthodromies réelles).
+  //    Si le fond de carte ne se charge pas (hors ligne), on garde un schéma simplifié.
   // ---------------------------------------------------------------------
+  const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-50m.json';
+  let worldPromise = null;
+  const loadWorld = () => worldPromise || (worldPromise = fetch(WORLD_URL)
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(topo => topojson.feature(topo, topo.objects.countries))
+    .catch(e => { worldPromise = null; throw e; }));
+
+  // Pays visités (code ISO numérique) et noms affichés en français.
+  const VISITES = new Set(['250', '840', '124']); // France, États-Unis, Canada
+  const PAYS = [
+    ['France', 2.4, 46.6, 1], ['États-Unis', -97, 38.5, 1], ['Canada', -84, 53.5, 1],
+    ['Royaume-Uni', -1.8, 52.8], ['Irlande', -8, 53.2], ['Espagne', -3.6, 40], ['Portugal', -8.1, 39.6],
+    ['Allemagne', 10.3, 51.1], ['Italie', 12.6, 42.9], ['Suisse', 8.2, 46.8], ['Belgique', 4.6, 50.6],
+    ['Pays-Bas', 5.6, 52.3], ['Islande', -18.6, 64.9], ['Groenland', -41, 72], ['Mexique', -101, 23.5],
+    ['Maroc', -6.3, 31.8], ['Algérie', 2.6, 30], ['Norvège', 9, 61.5], ['Cuba', -78.8, 21.7], ['Bahamas', -77.4, 24.6]
+  ];
+  const MERS = [['OCÉAN ATLANTIQUE', -40, 36], ['Mer Méditerranée', 6, 38.6], ['Baie d’Hudson', -86, 59], ['Golfe du Mexique', -90, 25.5]];
+
+  const maps = new Map();
+  let mapId = 0;
+
   function carte(st, r) {
-    const W = 860, H = 360, L0 = -96, L1 = 24, A0 = 28, A1 = 60;
-    const px = lon => (lon - L0) / (L1 - L0) * W, py = lat => (A1 - lat) / (A1 - A0) * H;
     const segs = new Map(), pts = new Map();
     st.groupes.forEach((g, gi) => g.vols.forEach((v, vi) => {
       const x = r.groupes[gi].vols[vi]; if (!x.legs) return;
@@ -27,31 +48,80 @@
       });
     }));
     if (!segs.size) return '<p class="muted">Aucun vol valide à afficher.</p>';
-    const max = Math.max(...[...segs.values()].map(s => s.kg));
-    let grid = '';
-    for (let lon = -90; lon <= 10; lon += 10) grid += `<line x1="${px(lon)}" y1="0" x2="${px(lon)}" y2="${H}"/>`;
-    for (let lat = 30; lat <= 55; lat += 5) grid += `<line x1="0" y1="${py(lat)}" x2="${W}" y2="${py(lat)}"/>`;
-    const arcs = [...segs.values()].map((s, i) => {
+    const id = 'map-' + (++mapId);
+    maps.set(id, { st, segs: [...segs.values()], pts: [...pts.values()] });
+    return `<div class="map-wrap" data-map="${id}"><div class="map-skel"><span>Chargement de la carte…</span></div></div>
+      <div class="legend mt"><span><i class="dot" style="background:var(--c-kelley)"></i>Kelley</span><span><i class="dot" style="background:var(--c-hec)"></i>HEC Montréal</span><span><i class="dot" style="background:var(--land-hl)"></i>Pays du voyage</span><span class="faint">Épaisseur du trait = émissions du segment · survoler un trait pour le détail</span></div>`;
+  }
+
+  const tipSeg = (s, st) => `<b>${s.a.code} → ${s.b.code}</b><br>${esc(s.a.nom)} → ${esc(s.b.nom)}<br>${esc(st.groupes[s.gi].nom)}<br>${nf(s.d, 0)} km · ${esc(s.tr)}<br><b>${t(s.kg, 2)} tCO2e</b> (A/R, tout le groupe)`;
+
+  function dessinerCarte(m, world) {
+    const W = 860, H = 470;
+    const coords = m.pts.map(p => [p.lon, p.lat]);
+    // Cadre : tous les aéroports + une marge, pour voir l'Atlantique en entier.
+    const lons = coords.map(c => c[0]), lats = coords.map(c => c[1]);
+    const box = { type: 'MultiPoint', coordinates: [
+      [Math.min(...lons) - 9, Math.min(...lats) - 6], [Math.max(...lons) + 9, Math.max(...lats) + 9],
+      [Math.min(...lons) - 9, Math.max(...lats) + 9], [Math.max(...lons) + 9, Math.min(...lats) - 6]] };
+    const midLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+    const proj = d3.geoConicConformal().parallels([30, 60]).rotate([-midLon, 0]).fitExtent([[0, 0], [W, H]], box);
+    const path = d3.geoPath(proj);
+    const grat = path(d3.geoGraticule().step([10, 10])());
+    const land = world.features.map(f => `<path d="${path(f)}" class="${VISITES.has(String(f.id)) ? 'land hl' : 'land'}"/>`).join('');
+    const inView = ([x, y]) => x > 20 && x < W - 20 && y > 14 && y < H - 10;
+    const names = PAYS.map(([n, lon, lat, v]) => { const p = proj([lon, lat]); return p && inView(p) ? `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" class="map-country${v ? ' v' : ''}">${n}</text>` : ''; }).join('')
+      + MERS.map(([n, lon, lat]) => { const p = proj([lon, lat]); return p && inView(p) ? `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" class="map-sea">${n}</text>` : ''; }).join('');
+    const max = Math.max(...m.segs.map(s => s.kg));
+    // Routes : géodésiques (grand cercle). Le groupe HEC est dessiné au-dessus, un peu plus fin.
+    const arcs = [...m.segs].sort((a, b) => a.gi - b.gi).map((s, i) => {
+      const d = path({ type: 'LineString', coordinates: [[s.a.lon, s.a.lat], [s.b.lon, s.b.lat]] });
+      const w = (1.6 + 8 * Math.sqrt(s.kg / max)) * (s.gi ? .8 : 1);
+      return `<path d="${d}" class="route-halo" stroke-width="${(w + 3).toFixed(1)}"/>
+        <path class="draw route" pathLength="1" style="--d:${350 + i * 170}ms" d="${d}" stroke="${GC[s.gi]}" stroke-width="${w.toFixed(1)}" data-tip="${tipSeg(s, m.st)}"/>`;
+    }).join('');
+    // Aéroports : étiquette décalée si deux aéroports sont trop proches (ex. Marseille et Paris).
+    const P = m.pts.map(p => ({ p, xy: proj([p.lon, p.lat]) }));
+    const dots = P.map((o, i) => {
+      const [x, y] = o.xy;
+      const near = P.find(q => q !== o && Math.hypot(q.xy[0] - x, q.xy[1] - y) < 34);
+      const below = near && o.p.lat < near.p.lat;
+      const right = o.p.lon > -30;
+      const lx = x + (right ? 10 : -10), ly = below ? y + 16 : (near ? y - 8 : y + 4);
+      return `<g class="pop" style="animation-delay:${250 + i * 70}ms" data-tip="<b>${o.p.code}</b> · ${esc(o.p.nom)}"><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5.5" class="ap"/>
+        <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${right ? 'start' : 'end'}" class="map-code">${o.p.code}</text></g>`;
+    }).join('');
+    return `<div class="viz-scroll"><svg class="viz map real" viewBox="0 0 ${W} ${H}" role="img" aria-label="Carte des trajets aériens des deux groupes entre la France et l'Amérique du Nord">
+      <defs><clipPath id="clip-${W}"><rect width="${W}" height="${H}" rx="14"/></clipPath></defs>
+      <g clip-path="url(#clip-${W})"><rect width="${W}" height="${H}" class="ocean"/>
+      <path d="${grat}" class="grat"/>${land}${names}${arcs}${dots}</g></svg></div>`;
+  }
+
+  // Schéma simplifié de secours (sans fond de carte).
+  function schema(m) {
+    const W = 860, H = 360, L0 = -96, L1 = 24, A0 = 28, A1 = 60;
+    const px = lon => (lon - L0) / (L1 - L0) * W, py = lat => (A1 - lat) / (A1 - A0) * H;
+    const max = Math.max(...m.segs.map(s => s.kg));
+    const arcs = m.segs.map((s, i) => {
       const x1 = px(s.a.lon), y1 = py(s.a.lat), x2 = px(s.b.lon), y2 = py(s.b.lat);
-      const dist = Math.hypot(x2 - x1, y2 - y1);
-      const off = s.gi ? 0.26 : 0.18; // les deux groupes ne se superposent pas
-      const cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 - dist * off;
-      const w = 1.5 + 9 * Math.sqrt(s.kg / max);
-      return `<path class="draw" pathLength="1" style="--d:${300 + i * 160}ms" d="M${x1},${y1} Q${cx},${cy} ${x2},${y2}" stroke="${GC[s.gi]}" stroke-width="${w.toFixed(1)}" fill="none" stroke-linecap="round" opacity=".9"
-        data-tip="<b>${s.a.code} → ${s.b.code}</b><br>${esc(st.groupes[s.gi].nom)}<br>${nf(s.d, 0)} km · ${esc(s.tr)}<br><b>${t(s.kg, 2)} tCO2e</b> (A/R, tout le groupe)"/>`;
+      const cy = (y1 + y2) / 2 - Math.hypot(x2 - x1, y2 - y1) * (s.gi ? .26 : .18);
+      return `<path class="draw" pathLength="1" style="--d:${300 + i * 160}ms" d="M${x1},${y1} Q${(x1 + x2) / 2},${cy} ${x2},${y2}" stroke="${GC[s.gi]}" stroke-width="${(1.5 + 9 * Math.sqrt(s.kg / max)).toFixed(1)}" fill="none" stroke-linecap="round" data-tip="${tipSeg(s, m.st)}"/>`;
     }).join('');
-    const dots = [...pts.values()].map((p, i) => {
-      const x = px(p.lon), y = py(p.lat), left = p.lon > -20;
-      return `<g class="pop" style="animation-delay:${200 + i * 70}ms"><circle cx="${x}" cy="${y}" r="5.5" fill="var(--surface)" stroke="var(--text)" stroke-width="2"/>
-        <text x="${x + (left ? 9 : -9)}" y="${y + 4}" text-anchor="${left ? 'start' : 'end'}" class="map-code">${p.code}</text></g>`;
-    }).join('');
-    return `<div class="viz-scroll"><svg class="viz map" viewBox="0 0 ${W} ${H}" role="img" aria-label="Carte des trajets aériens des deux groupes">
-      <g class="grid">${grid}</g>
-      <text x="${px(-80)}" y="${py(52)}" class="map-zone">AMÉRIQUE DU NORD</text>
-      <text x="${px(-42)}" y="${py(36)}" class="map-zone">OCÉAN ATLANTIQUE</text>
-      <text x="${px(-4)}" y="${py(55.5)}" class="map-zone">EUROPE</text>
-      ${arcs}${dots}</svg></div>
-      <div class="legend mt"><span><i class="dot" style="background:var(--c-kelley)"></i>Kelley</span><span><i class="dot" style="background:var(--c-hec)"></i>HEC Montréal</span><span class="faint">Épaisseur du trait = émissions du segment · survoler un trait pour le détail</span></div>`;
+    const dots = m.pts.map(p => `<circle cx="${px(p.lon)}" cy="${py(p.lat)}" r="5.5" class="ap"/><text x="${px(p.lon) + 9}" y="${py(p.lat) + 4}" class="map-code">${p.code}</text>`).join('');
+    return `<div class="viz-scroll"><svg class="viz map" viewBox="0 0 ${W} ${H}" role="img" aria-label="Schéma des trajets">${arcs}${dots}</svg></div>
+      <p class="faint" style="font-size:12px">Fond de carte indisponible (connexion ?) : schéma simplifié.</p>`;
+  }
+
+  // Appelé après chaque affichage de page : remplace les emplacements de carte par la vraie carte.
+  function hydrateMaps(root) {
+    const wraps = [...root.querySelectorAll('[data-map]')];
+    if (!wraps.length) return;
+    const ok = window.d3 && d3.geoConicConformal && window.topojson;
+    (ok ? loadWorld() : Promise.reject(new Error('libs'))).then(world => {
+      wraps.forEach(w => { const m = maps.get(w.dataset.map); if (m && w.isConnected) w.innerHTML = dessinerCarte(m, world); });
+    }).catch(() => {
+      wraps.forEach(w => { const m = maps.get(w.dataset.map); if (m && w.isConnected) w.innerHTML = schema(m); });
+    });
   }
 
   // ---------------------------------------------------------------------
@@ -128,7 +198,7 @@
         ${row.n > 1 ? `<div class="anat-bar ghost"><span style="width:${row.direct / max * 100}%" data-tip="Vol direct théorique ${row.legs[0].l.from.code} → ${row.legs[row.n - 1].l.to.code} : ${nf(row.direct, 0)} kg">Direct théorique · ${nf(row.direct, 0)} kg</span></div>
         <div class="anat-diff">+ ${nf(row.sum - row.direct, 0)} kg par passager et par aller à cause de ${row.n - 1} correspondance${row.n > 2 ? 's' : ''} (+${nf((row.sum / row.direct - 1) * 100, 0)} %)</div>` : ''}
       </div>`).join('')}</div>
-      <div class="legend mt"><span><i class="dot" style="background:var(--c-corr)"></i>Court-courrier (&lt; 1 000 km)</span><span><i class="dot" style="background:var(--c-ground)"></i>Moyen-courrier</span><span><i class="dot" style="background:var(--c-air)"></i>Long-courrier (&gt; 3 500 km)</span><span class="faint">Émissions par passager, pour un aller</span></div>`;
+      <div class="legend mt"><span><i class="dot" style="background:var(--c-corr)"></i>Court-courrier (&lt; 1 000 km)</span><span><i class="dot" style="background:var(--c-ground)"></i>Moyen-courrier (1 000 – 5 000 km)</span><span><i class="dot" style="background:var(--c-air)"></i>Long-courrier (&gt; 5 000 km)</span><span class="faint">Émissions par passager, pour un aller</span></div>`;
   }
 
   // ---------------------------------------------------------------------
@@ -148,14 +218,14 @@
     const sq = Math.round(per / 100), budget = 20;
     const n = Math.max(sq, budget);
     const cells = Array.from({ length: n }, (_, i) => `<i class="${i < sq ? 'on' : ''} ${i < budget ? 'in' : ''}" style="animation-delay:${i * 22}ms"></i>`).join('');
-    return `<div class="grid grid-3">
+    const tiles = `
         ${tile('train', nf(tgv, 0), 'allers-retours Paris–Marseille en TGV', 'pour égaler le voyage d’un seul étudiant', 0)}
         ${tile('car', nf(car, 0), 'km seul en voiture thermique', `soit ${nf(car / 40075 * 100, 0)} % du tour de la Terre`, 1)}
-        ${tile('cal', nf(mois, 0), 'mois de budget climat', 'budget compatible avec l’Accord de Paris : 2 t par an et par personne', 2)}
-      </div>
-      <div class="card mt" style="--i:3"><h2 class="section">Le voyage d’un étudiant, en carrés de 100 kg</h2>
+        ${tile('cal', nf(mois, 0), 'mois de budget climat', 'budget compatible avec l’Accord de Paris : 2 t par an et par personne', 2)}`;
+    const waffle = `<div class="card" style="--i:3"><h2 class="section">Le voyage d’un étudiant, en carrés de 100 kg</h2>
         <div class="waffle">${cells}</div>
         <div class="legend mt"><span><i class="dot" style="background:var(--accent)"></i>${nf(per / 1000, 2)} t pour le voyage (${sq} carrés)</span><span><i class="dot" style="background:transparent;border:1.5px dashed var(--text-2)"></i>Budget climat d'une année entière : 2 t (20 carrés)</span></div></div>`;
+    return { tiles, waffle };
   }
 
   // ---------------------------------------------------------------------
@@ -313,5 +383,5 @@
   document.addEventListener('focusin', e => { const el = e.target.closest?.('.term'); if (el) { const r = el.getBoundingClientRect(); show(el, r.left, r.bottom - 8); } });
   document.addEventListener('focusout', e => { if (e.target.closest?.('.term')) hide(); });
 
-  window.Viz = { carte, flux, anatomie, equivalences, cascade, demarche, troisResultats, chaine, schemaDistance, escalier, detail };
+  window.Viz = { carte, hydrateMaps, flux, anatomie, equivalences, cascade, demarche, troisResultats, chaine, schemaDistance, escalier, detail };
 })();

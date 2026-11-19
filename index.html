@@ -9,7 +9,7 @@
   <title>Bilan Carbone · Project 2</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <script>try{var t=localStorage.getItem('bilan-carbone.theme')||'dark';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='dark'}</script>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2026-11-19b">
 </head>
 <body>
   <div id="splash" aria-hidden="true"><div class="splash-in"><div class="splash-logo"><span class="splash-dot"></span>Bilan Carbone</div><div class="splash-num num"></div></div></div>
@@ -38,10 +38,14 @@
   <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/calc.js"></script>
-  <script src="js/visuals.js"></script>
-  <script src="js/glossary.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Fond de carte : projection (d3-geo) et lecture des contours des pays (topojson) -->
+  <script src="https://cdn.jsdelivr.net/npm/d3-array@3.2.4/dist/d3-array.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/dist/d3-geo.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+  <script src="js/data.js?v=2026-11-19b"></script>
+  <script src="js/calc.js?v=2026-11-19b"></script>
+  <script src="js/visuals.js?v=2026-11-19b"></script>
+  <script src="js/glossary.js?v=2026-11-19b"></script>
+  <script src="js/app.js?v=2026-11-19b"></script>
 </body>
 </html>
