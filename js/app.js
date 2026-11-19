@@ -856,17 +856,21 @@
   }
 
   // ---------- Routeur ----------
-  // Onglet Trajets (js/trajets.js) : page d'accueil. Il lit et modifie le même état que l'onglet Saisie.
+  // Accueil « Mon voyage » et formulaire « Saisir mon trajet » (js/accueil.js).
+  // Onglet Trajets (js/trajets.js) : onglet du pôle. Il lit et modifie le même état que l'onglet Saisie.
   const ctx = { st: () => st, save, render: soft => render(soft), toast };
   const ROUTES = {
+    accueil: [() => Accueil.view(ctx), v => Accueil.bind(v, ctx)],
+    'mon-trajet': [() => Accueil.form(ctx), v => Accueil.bindForm(v, ctx)],
     trajets: [() => Trajets.view(ctx), v => Trajets.bind(v, ctx)],
     synthese: [vSynthese, aSynthese], saisie: [vSaisie, aSaisie], scenarios: [vScenarios, aScenarios],
     rapport: [vRapport, aRapport], methode: [vMethode, () => {}]
   };
-  const route = () => { const h = location.hash.replace(/^#\/?/, ''); return ROUTES[h] ? h : 'trajets'; };
+  const route = () => { const h = location.hash.replace(/^#\/?/, ''); return ROUTES[h] ? h : 'accueil'; };
 
   function render(soft) {
     const name = route();
+    if (name !== 'mon-trajet') Accueil.quitter();
     const y = soft ? scrollY : 0;
     killCharts();
     const old = $('#view');
@@ -880,7 +884,7 @@
       const b = e.target.closest('[data-rf]'); if (!b) return;
       st.rf = b.dataset.rf === '1'; save(); render(true);
     });
-    $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.route === name));
+    $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.route === (name === 'mon-trajet' ? 'accueil' : name)));
     moveBubble();
     if (!soft) $$('[data-count]', view).forEach(el => countUp(el));
     tilt(view);
@@ -903,7 +907,7 @@
 
   // ---------- Glisser à gauche / à droite pour changer d'onglet (téléphone) ----------
   (() => {
-    const order = ['trajets', 'synthese', 'saisie', 'scenarios', 'rapport', 'methode'];
+    const order = ['accueil', 'trajets', 'synthese', 'saisie', 'scenarios', 'rapport', 'methode'];
     let x0 = null, y0 = 0;
     document.addEventListener('touchstart', e => {
       if (e.target.closest('input, select, textarea, .table-wrap, canvas, .viz-scroll')) { x0 = null; return; }
@@ -913,8 +917,9 @@
       if (x0 == null) return;
       const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
       if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
+      if (!order.includes(route())) return; // pas de glissement pendant la saisie du trajet
       const i = order.indexOf(route()) + (dx < 0 ? 1 : -1);
-      if (order[i]) location.hash = order[i] === 'trajets' ? '#/' : '#/' + order[i];
+      if (order[i]) location.hash = order[i] === 'accueil' ? '#/' : '#/' + order[i];
     }, { passive: true });
   })();
 
@@ -972,5 +977,5 @@
   });
   render();
   splash();
-  if (window.Partage) Partage.charger().then(() => { if (!['saisie', 'trajets'].includes(route())) render(true); });
+  if (window.Partage) Partage.charger().then(() => { if (!['saisie', 'trajets', 'mon-trajet'].includes(route())) render(true); });
 })();

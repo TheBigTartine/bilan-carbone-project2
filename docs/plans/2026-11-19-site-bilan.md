@@ -188,7 +188,38 @@ Tâches :
 - La jauge « X trajets saisis sur 70 » se met à jour après l'envoi.
 
 Critères de fin : voir la spec, phase 5.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 5 (écrit le 19/11/2026 sur `e3f7a36`)
+
+Écarts à valider avec Théo :
+- **Étape « mes trajets sur place » retirée** : les trajets sur place sont collectifs (navette, visites du groupe) et déjà comptés pour tout le groupe. Les 4 étapes deviennent : qui es-tu, ton itinéraire (le point de départ est sa première étape), ton billet, vérifier et envoyer.
+- **Bouton « Visite guidée »** : il n'apparaît qu'à la phase 8, quand la visite existe (pas de bouton qui ne mène à rien).
+
+1. **Accueil (`js/accueil.js`, nouveau ; route `#/`).** But : l'étudiant voit tout de suite le bilan et le bouton pour saisir.
+   - Bandeau : bilan global (t), t par étudiant, avec traînées.
+   - Jauge de collecte : « X trajets saisis sur 70 », puis une barre par groupe (Kelley x / 36, HEC y / 34).
+   - Bouton principal « Saisir mon trajet » (« Modifier mon trajet » si ce téléphone a déjà envoyé une saisie).
+   - Base injoignable : message et jauge masquée, le bouton reste mais l'envoi dira « pas de connexion ».
+2. **Formulaire « Saisir mon trajet » (`js/accueil.js`, route `#/mon-trajet`).** Une étape par écran, boutons « Retour » et « Suivant », barre de progression 1 → 4.
+   - Étape 1 « Qui es-tu ? » : groupe (deux gros boutons Kelley / HEC), prénom, initiale du nom (1 lettre), code du groupe.
+   - Étape 2 « Ton itinéraire » : prérempli avec l'itinéraire du groupe (ex. Marseille → Paris-CDG → Atlanta → Indianapolis) ; chaque étape est un champ avec la recherche d'aéroports existante (par ville ou code) ; entre deux étapes, le mode : avion, train ou autocar ; « Ajouter une escale », « Retirer ». Erreur affichée tout de suite si l'itinéraire est impossible (même règle que le calcul).
+   - Étape 3 « Ton billet » : classe (éco par défaut) et aller-retour (oui par défaut).
+   - Étape 4 « Vérifie » : résumé en mots (villes, modes, classe, A/R), bouton « Envoyer ». Erreurs de la base en français : code incorrect, pas de connexion.
+   - Après l'envoi : écran « C'est enregistré », jauge à jour, bouton « Retour à l'accueil ».
+   - Ce téléphone garde (localStorage, clé `bilan-carbone.moi`) groupe, prénom, initiale, code et trajet, pour préremplir « Modifier mon trajet ». Rien d'autre n'est gardé.
+3. **Recherche d'aéroports (`js/trajets.js`).** Seulement exporter les fonctions existantes (`aeroports`, `chercher`, menu de suggestions) dans `window.Trajets`, sans changer leur comportement.
+4. **Navigation (`index.html`, `js/app.js`).** Nouvel onglet « Accueil » en premier (`#/`) ; « Trajets » passe en `#/trajets` (onglet du pôle) ; ordre du glissement au doigt mis à jour ; le lien « #/ » de l'ancien code pointe vers l'accueil. Contrôle : 7 onglets tiennent dans la barre du bas à 375 px.
+5. **Style (`css/accueil.css`, nouveau).** Jauge, gros boutons de groupe, étapes du formulaire ; tout bouton ≥ 40 px au toucher ; rien de plus large que 375 px.
+6. **Versions.** `?v=` à `2026-11-19s`, `accueil.css` et `accueil.js` ajoutés.
+
+Contrôles :
+- au téléphone (375 px) : saisie complète « Test T » Kelley avec le code, itinéraire du groupe → chronométrée sous 3 minutes ; « Modifier mon trajet » repart des valeurs envoyées ;
+- jauge 1 / 70 après l'envoi, puis « Test T » masqué de nouveau par Théo (pôle) ;
+- mauvais code → message ; base coupée → message ; itinéraire impossible → bloqué à l'étape 2 ;
+- 7 onglets en avant et en arrière, ordinateur et 375 px, console sans erreur ; total des hypothèses 172,4 / 95,3 t.
+
+Prévenir Martin (accueil) et Adrien (`trajets.js`).
+Message de commit : « Phase 5 de l'audit : accueil Mon voyage et saisie du trajet ».
 ### STOP — fin de la phase 5
 
 ## Phase 6 — Jeu

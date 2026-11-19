@@ -471,5 +471,20 @@
     }, 0);
   }
 
-  window.Trajets = { view, bind };
+  // Recherche d'aéroports réutilisée par le formulaire « Saisir mon trajet » (js/accueil.js), même comportement qu'ici.
+  function suggerer(input, st, pick) {
+    const q = input.value;
+    openMenu(input, chercher(aeroports(st), q, [['ville', 1], ['nom', 2], ['code', 1]]),
+      a => `<span class="ac-code">${esc(a.code)}</span><span><b>${surligne(a.ville, q)}</b> · ${surligne(a.nom, q)}<small>${esc(PAYS[a.pays] || a.pays)}</small></span>`, pick);
+  }
+  function clavierMenu(e) {
+    if (!menu || e.target !== owner) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); moveMenu(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); moveMenu(-1); }
+    else if (e.key === 'Enter' || e.key === 'Tab') { if (items[idx]) { e.preventDefault(); const it = items[idx], f = onPick; closeMenu(); f(it); } }
+    else if (e.key === 'Escape') closeMenu();
+  }
+  const villeAeroport = code => villeDe[code] || (window.AEROPORTS[code] || [code])[0];
+
+  window.Trajets = { view, bind, suggerer, clavierMenu, fermerMenu: closeMenu, villeAeroport };
 })();

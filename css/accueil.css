@@ -1,0 +1,62 @@
+/* Accueil « Mon voyage » et formulaire « Saisir mon trajet » (js/accueil.js). */
+
+.mv-grille { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.mv-cta { display: inline-flex; align-items: center; justify-content: center; margin-top: 18px; min-height: 48px; padding: 0 26px; font-size: 15px; font-weight: 700; text-decoration: none; }
+.mv-deja { font-size: 12.5px; margin: 10px 0 0; }
+
+/* Jauge de la collecte */
+.jauge-tete { display: flex; align-items: baseline; gap: 8px; margin-bottom: 14px; color: var(--text-2); }
+.jauge-n { font-size: 40px; font-weight: 800; color: var(--text); line-height: 1; }
+.jauge-ligne { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) auto; align-items: center; gap: 10px; margin: 10px 0; font-size: 13.5px; }
+.jauge-barre { height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.jauge-barre span { display: block; height: 100%; border-radius: 999px; transition: width .9s ease-in-out; }
+
+/* Formulaire */
+.mt-prog { list-style: none; display: flex; gap: 6px; padding: 0; margin: 16px 0 14px; }
+.mt-prog li { flex: 1; display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--text-3); }
+.mt-prog li::before { content: ""; height: 5px; border-radius: 999px; background: var(--surface-2); }
+.mt-prog li.fait::before, .mt-prog li.ici::before { background: var(--accent); }
+.mt-prog li.ici { color: var(--text); }
+.mt-prog li .num { display: none; }
+.mt-carte { max-width: 620px; }
+.mt-carte h2 { margin: 0 0 6px; font-size: 21px; }
+.mt-champ { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; font-weight: 600; font-size: 13.5px; }
+.mt-champ .field { width: 100%; max-width: 360px; min-height: 44px; font-size: 16px; }
+.mt-champ .mt-court { max-width: 90px; text-transform: uppercase; }
+.mt-groupes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.mt-groupe, .mt-opt { min-height: 52px; border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); border-radius: 14px; padding: 10px 12px; font: inherit; font-weight: 700; cursor: pointer; text-align: left; }
+.mt-groupe small { display: block; font-weight: 500; color: var(--text-3); font-size: 12px; }
+.mt-groupe.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--surface)); }
+.mt-opt { min-height: 44px; }
+.mt-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.mt-choix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.mt-itin { margin-top: 14px; }
+.mt-etape { display: flex; align-items: center; gap: 8px; }
+.mt-etape .field { flex: 1; min-width: 0; min-height: 44px; font-size: 16px; }
+.mt-num { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 13px; }
+.mt-mode { margin: 8px 0 8px 36px; }
+.mt-mode button { min-height: 36px; }
+.mt-resume { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 14px 0; }
+.mt-resume dt { color: var(--text-3); font-size: 13px; }
+.mt-resume dd { margin: 0; font-weight: 600; }
+.mt-err { margin: 14px 0 0; font-weight: 600; }
+.mt-nav { display: flex; justify-content: space-between; gap: 10px; margin-top: 22px; }
+.mt-nav .btn { min-height: 46px; padding: 0 22px; text-decoration: none; display: inline-flex; align-items: center; }
+
+@media (max-width: 760px) {
+  .mv-grille { grid-template-columns: 1fr; }
+  .mv-cta { width: 100%; }
+}
+@media (max-width: 560px) {
+  /* 7 onglets dans la barre du bas (Accueil en plus) : chacun garde au moins 40 px de large. */
+  .nav { gap: 0; }
+  .nav a { min-width: 0; padding-left: 0; padding-right: 0; font-size: 9.5px; }
+  .mt-prog li b { display: none; }
+  .mt-prog li.ici b { display: block; position: absolute; }
+  .mt-prog { position: relative; padding-bottom: 16px; }
+  .mt-mode { margin-left: 36px; }
+  .mt-nav .btn { flex: 1; justify-content: center; }
+}
+@media (pointer: coarse) {
+  .mt-mode button { min-height: 40px; }
+}
