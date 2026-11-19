@@ -417,3 +417,17 @@ table.detail td:first-child { min-width: 170px; }
 table.detail td:first-child b { white-space: nowrap; }
 table.detail th { white-space: nowrap; }
 table.detail { min-width: 920px; }
+
+/* ---------- Bulles du lexique ---------- */
+.term { text-decoration: underline dotted color-mix(in srgb, var(--accent) 70%, transparent); text-decoration-thickness: 1.5px; text-underline-offset: 3px; cursor: help; border-radius: 4px; transition: background .2s; }
+.term.hot, .term:focus-visible { background: var(--accent-soft); outline: none; }
+.seg-wrap { display: inline-flex; align-items: center; gap: 8px; }
+.info { width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font: italic 700 12px/1 Georgia, serif; background: var(--surface-2); color: var(--text-2); cursor: help; border: .5px solid var(--border); flex-shrink: 0; transition: background .2s, color .2s; }
+.info.hot, .info:hover { background: var(--accent); color: var(--on-accent); }
+.viz-tip { max-width: 320px; }
+.viz-tip b:first-child { color: var(--accent); }
+.lexique { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin: 0; }
+.lexique > div { background: var(--surface-2); border-radius: 14px; padding: 10px 12px; }
+.lexique dt { font-weight: 700; margin-bottom: 3px; }
+.lexique dd { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.5; }
+@media print { .term { text-decoration: none; } .info { display: none; } }

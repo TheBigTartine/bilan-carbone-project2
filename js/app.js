@@ -74,8 +74,8 @@
   });
 
   // ---------- Petits composants ----------
-  const seg = () => `<div class="seg no-print" role="group" aria-label="Traînées de condensation">
-      <button data-rf="1" class="${st.rf ? 'on' : ''}">Avec traînées</button><button data-rf="0" class="${st.rf ? '' : 'on'}">Sans traînées</button></div>`;
+  const seg = () => `<div class="seg-wrap no-print"><div class="seg" role="group" aria-label="Traînées de condensation">
+      <button data-rf="1" class="${st.rf ? 'on' : ''}">Avec traînées</button><button data-rf="0" class="${st.rf ? '' : 'on'}">Sans traînées</button></div><span class="info" tabindex="0" data-tip="${esc(Lexique.definition('traînées'))}" aria-label="Qu'est-ce que les traînées ?">i</span></div>`;
   const kpi = (label, kg, sub, color, i) => `<div class="card tilt" style="--i:${i}">
       <div class="kpi-label">${color ? `<span class="dot" style="background:${color}"></span>` : ''}${label}</div>
       <div class="kpi-value num" data-count="${t(kg)}">${t(kg)} <small>tCO2e</small></div>
@@ -466,6 +466,7 @@
         <div><h2 class="section mt2" id="calculs">Calculs détaillés, segment par segment</h2>
           <p class="muted" style="font-size:13px">Toutes les étapes avec les données saisies (${st.rf ? 'avec' : 'sans'} traînées). Chaque résultat peut être vérifié à la calculatrice.</p>
           ${Viz.detail(st, Calc.calculer(st))}</div>
+        <div class="card" style="--i:4" id="lexique"><h2 class="section">Lexique</h2><p class="muted" style="font-size:13px;margin-bottom:12px">Les mots soulignés en pointillés dans tout le site affichent ces définitions au survol (ou au toucher sur téléphone).</p>${Lexique.lexiqueHTML()}</div>
         <div class="card" style="--i:4"><h2 class="section">Communication responsable</h2>
           <ul><li>Ne pas annoncer de neutralité carbone non démontrée.</li><li>Ne pas présenter des arbres plantés comme des tonnes de CO2 compensées immédiatement.</li><li>Ne jamais additionner émissions évitées, émissions réduites et contributions financées.</li><li>Ne pas confondre un financement environnemental avec un crédit carbone.</li><li>Toujours indiquer la convention retenue (avec ou sans traînées) et les limites.</li></ul></div>
         <div class="note warn" style="--i:5"><b>À faire par le pôle avant le bilan définitif :</b> vérifier chaque facteur dans la version en vigueur de la <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a> et le corriger dans <code>js/data.js</code> si besoin. Source actuelle : ${esc(F.version)}.</div>
@@ -488,6 +489,7 @@
     view.innerHTML = `<div class="view">${ROUTES[name][0]()}</div>`;
     old.replaceWith(view);
     ROUTES[name][1](view);
+    Lexique.annoter(view);
     view.addEventListener('click', e => {
       const b = e.target.closest('[data-rf]'); if (!b) return;
       st.rf = b.dataset.rf === '1'; save(); render(true);

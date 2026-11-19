@@ -280,16 +280,38 @@
   // ---------------------------------------------------------------------
   const tip = document.createElement('div');
   tip.className = 'viz-tip'; document.body.appendChild(tip);
+  let cur = null;
+  const place = (cx, cy) => {
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    const x = Math.max(8, Math.min(innerWidth - w - 8, cx + 14));
+    const y = cy + 16 + h > innerHeight - 90 ? cy - h - 12 : cy + 16;
+    tip.style.transform = `translate(${x}px, ${Math.max(8, y)}px)`;
+  };
+  const show = (el, cx, cy) => {
+    if (cur && cur !== el) cur.classList.remove('hot');
+    cur = el; tip.innerHTML = el.dataset.tip; tip.classList.add('show'); el.classList.add('hot'); place(cx, cy);
+  };
+  const hide = () => { tip.classList.remove('show'); if (cur) cur.classList.remove('hot'); cur = null; };
+  // Souris : survol
   document.addEventListener('pointerover', e => {
+    if (e.pointerType === 'touch') return;
     const el = e.target.closest('[data-tip]'); if (!el) return;
-    tip.innerHTML = el.dataset.tip; tip.classList.add('show'); el.classList.add('hot');
-    el.addEventListener('pointerleave', () => { tip.classList.remove('show'); el.classList.remove('hot'); }, { once: true });
+    show(el, e.clientX, e.clientY);
+    el.addEventListener('pointerleave', hide, { once: true });
   });
-  document.addEventListener('pointermove', e => {
-    if (!tip.classList.contains('show')) return;
-    const w = tip.offsetWidth, x = Math.min(innerWidth - w - 8, e.clientX + 14), y = e.clientY + 16;
-    tip.style.transform = `translate(${Math.max(8, x)}px, ${y + tip.offsetHeight > innerHeight ? e.clientY - tip.offsetHeight - 10 : y}px)`;
+  document.addEventListener('pointermove', e => { if (cur && e.pointerType !== 'touch') place(e.clientX, e.clientY); });
+  // Téléphone : un toucher ouvre la bulle, un second (ou ailleurs) la ferme
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-tip]');
+    if (!el) { if (cur) hide(); return; }
+    if (matchMedia('(hover: hover)').matches && !el.classList.contains('term')) return;
+    if (cur === el) return hide();
+    const r = el.getBoundingClientRect(); show(el, r.left, r.bottom - 8);
   });
+  addEventListener('scroll', () => { if (cur && !matchMedia('(hover: hover)').matches) hide(); }, { passive: true });
+  // Clavier : Tab sur un terme
+  document.addEventListener('focusin', e => { const el = e.target.closest?.('.term'); if (el) { const r = el.getBoundingClientRect(); show(el, r.left, r.bottom - 8); } });
+  document.addEventListener('focusout', e => { if (e.target.closest?.('.term')) hide(); });
 
   window.Viz = { carte, flux, anatomie, equivalences, cascade, demarche, troisResultats, chaine, schemaDistance, escalier, detail };
 })();
