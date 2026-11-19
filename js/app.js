@@ -98,6 +98,7 @@
     return `
       <div class="head"><div><div class="page-title">Study Tours 2026-2027 · ${r.participants} étudiants</div><h1 style="font-size:28px">Empreinte carbone des mobilités</h1></div>${seg()}</div>
       <div class="dash-top">
+        <div class="dash-left">
         <div class="card glass hero-card tilt" style="--i:0">
           <div class="hero-main">
             <div class="page-title">Bilan global · ${st.rf ? 'avec' : 'sans'} traînées</div>
@@ -121,14 +122,15 @@
           ${kpi('Poids des correspondances', r.corr, `${pct(r.total ? r.corr / r.total : 0)} du total, par rapport à des vols directs`, col('--c-corr'), 3)}
           ${kpi('Déplacements terrestres', r.terrestre, `${pct(r.total ? r.terrestre / r.total : 0)} du total`, col('--c-ground'), 4)}
         </div>
+        </div>
+        <div class="card map-card" style="--i:5"><div class="map-head"><h2 class="section">Carte des trajets</h2><span class="muted sub">Plus le trait est épais, plus le segment émet</span></div>${Viz.carte(st, r, { H: 660 })}</div>
       </div>
       ${hypoNote(r)}${errNote(r)}
-      <div class="grid grid-2 mt">
-        <div class="card" style="--i:5"><h2 class="section">Carte des trajets</h2><p class="muted sub">Chaque trait est un segment de vol ; plus il est épais, plus il émet.</p>${Viz.carte(st, r)}</div>
+      <div class="grid grid-main mt">
         <div class="card" style="--i:6"><h2 class="section">D'où viennent les tonnes ?</h2><p class="muted sub">Du total vers chaque groupe, puis vers chaque poste. Survoler un flux pour le chiffre.</p>${Viz.flux(r)}</div>
-      </div>
-      <div class="grid grid-3 mt charts-row">
         <div class="card" style="--i:7"><h2 class="section">Répartition par poste et par groupe</h2><div class="chart-box"><canvas id="c-postes"></canvas></div></div>
+      </div>
+      <div class="grid grid-2 mt charts-row">
         <div class="card" style="--i:8"><h2 class="section">Effet des traînées (hors CO2)</h2>
           <div class="chart-box sm"><canvas id="c-rf"></canvas></div>
           <p class="muted mt" style="font-size:12.5px">Avec traînées : <b>${t(st.rf ? r.total : alt.total)} t</b> · sans : <b>${t(st.rf ? alt.total : r.total)} t</b>. Les deux conventions ne se mélangent jamais.</p></div>

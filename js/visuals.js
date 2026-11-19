@@ -34,7 +34,7 @@
   const maps = new Map();
   let mapId = 0;
 
-  function carte(st, r) {
+  function carte(st, r, opts = {}) {
     const segs = new Map(), pts = new Map();
     st.groupes.forEach((g, gi) => g.vols.forEach((v, vi) => {
       const x = r.groupes[gi].vols[vi]; if (!x.legs) return;
@@ -49,15 +49,15 @@
     }));
     if (!segs.size) return '<p class="muted">Aucun vol valide à afficher.</p>';
     const id = 'map-' + (++mapId);
-    maps.set(id, { st, segs: [...segs.values()], pts: [...pts.values()] });
-    return `<div class="map-wrap" data-map="${id}"><div class="map-skel"><span>Chargement de la carte…</span></div></div>
+    maps.set(id, { st, segs: [...segs.values()], pts: [...pts.values()], H: opts.H || 470 });
+    return `<div class="map-wrap" data-map="${id}"><div class="map-skel" style="aspect-ratio:860/${opts.H || 470}"><span>Chargement de la carte…</span></div></div>
       <div class="legend mt"><span><i class="dot" style="background:var(--c-kelley)"></i>Kelley</span><span><i class="dot" style="background:var(--c-hec)"></i>HEC Montréal</span><span><i class="dot" style="background:var(--land-hl)"></i>Pays du voyage</span><span class="faint">Épaisseur du trait = émissions du segment · survoler un trait pour le détail</span></div>`;
   }
 
   const tipSeg = (s, st) => `<b>${s.a.code} → ${s.b.code}</b><br>${esc(s.a.nom)} → ${esc(s.b.nom)}<br>${esc(st.groupes[s.gi].nom)}<br>${nf(s.d, 0)} km · ${esc(s.tr)}<br><b>${t(s.kg, 2)} tCO2e</b> (A/R, tout le groupe)`;
 
   function dessinerCarte(m, world) {
-    const W = 860, H = 470;
+    const W = 860, H = m.H;
     const coords = m.pts.map(p => [p.lon, p.lat]);
     // Cadre : tous les aéroports + une marge, pour voir l'Atlantique en entier.
     const lons = coords.map(c => c[0]), lats = coords.map(c => c[1]);

@@ -498,3 +498,19 @@ p.sub { font-size: 12.5px; margin: -6px 0 10px; }
 .map .map-code { paint-order: stroke; stroke: var(--ocean); stroke-width: 3px; stroke-linejoin: round; }
 .grid-2 > .card .viz.map.real { max-height: 420px; }
 .map.real .map-code { font-size: 16px; }
+
+/* ---------- Carte en haut du tableau de bord ---------- */
+.dash-top { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+.dash-left { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.dash-left .kpis { flex: 1; }
+.map-card { display: flex; flex-direction: column; padding: 14px 16px 12px; }
+.map-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.map-head h2.section { margin: 0; }
+.map-card .map-wrap { flex: 1; display: flex; align-items: center; }
+.map-card .map-wrap > .viz-scroll, .map-card .map-wrap > .map-skel { width: 100%; }
+.map-card .viz.map.real { max-height: none; }
+.map-card .legend { margin-top: 8px; }
+.charts-row .waffle { grid-template-columns: repeat(13, minmax(0, 1fr)); }
+@media (max-width: 1250px) { .dash-top { grid-template-columns: 1fr; } }
+.viz-scroll .viz.map.real { min-width: 0; }
+@media (max-width: 760px) { .map-head .sub { display: none; } }
