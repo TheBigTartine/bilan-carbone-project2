@@ -14,6 +14,8 @@
   try { st = JSON.parse(localStorage.getItem(KEY)); } catch (e) { st = null; }
   if (!st || !Array.isArray(st.groupes)) st = clone(window.HYPOTHESES);
   st = { ...clone(window.HYPOTHESES), ...st, scenarios: { ...window.HYPOTHESES.scenarios, ...(st.scenarios || {}) } };
+  const fixLocations = () => st.groupes.forEach(g => { if (!Array.isArray(g.locations)) g.locations = []; }); // anciennes sauvegardes
+  fixLocations();
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
 
   // ---------- Formats ----------
@@ -297,7 +299,7 @@
       f.text().then(txt => {
         const d = JSON.parse(txt);
         if (!Array.isArray(d.groupes)) throw new Error();
-        st = { ...clone(window.HYPOTHESES), ...d }; save(); render(); toast('Données importées');
+        st = { ...clone(window.HYPOTHESES), ...d }; fixLocations(); save(); render(); toast('Données importées');
       }).catch(() => toast('Fichier non reconnu'));
     });
   }
@@ -316,6 +318,7 @@
     st.groupes.forEach((g, gi) => {
       g.vols.forEach((v, i) => { const x = r.groupes[gi].vols[i]; rows.push([g.nom, 'Vol', v.label, v.route, x.legs.length, nf(x.legs.reduce((s, l) => s + l.d, 0), 0), v.pax, F.classes[v.classe]?.label, v.ar ? 'oui' : 'non', v.source, nf(x.air, 1)]); });
       g.terrestres.forEach((x, i) => rows.push([g.nom, 'Terrestre', x.label, F.terrestre[x.mode]?.label, '', x.km, x.pax, '', x.ar ? 'oui' : 'non', x.source, nf(r.groupes[gi].terr[i], 1)]));
+      (g.locations || []).forEach((l, i) => { const x = r.groupes[gi].loc[i]; rows.push([g.nom, 'Location voiture', [l.label, l.de && l.a ? `${l.de} → ${l.a}` : ''].filter(Boolean).join(' : '), `${x.modele?.label || ''} × ${l.nv}`, '', l.km, x.personnes, '', l.ar ? 'oui' : 'non', l.source, nf(x.kg, 1)]); });
     });
     rows.push([], ['Total', '', '', '', '', '', r.participants, '', '', '', nf(r.total, 1)]);
     download(`tableau-deplacements_${stamp()}.csv`, '﻿' + rows.map(l => l.map(q).join(';')).join('\n'), 'text/csv;charset=utf-8');
@@ -522,11 +525,14 @@
   }
 
   // ---------- Routeur ----------
+  // Onglet Trajets (js/trajets.js) : page d'accueil. Il lit et modifie le même état que l'onglet Saisie.
+  const ctx = { st: () => st, save, render: soft => render(soft), toast };
   const ROUTES = {
+    trajets: [() => Trajets.view(ctx), v => Trajets.bind(v, ctx)],
     synthese: [vSynthese, aSynthese], saisie: [vSaisie, aSaisie], scenarios: [vScenarios, aScenarios],
     rapport: [vRapport, aRapport], methode: [vMethode, () => {}]
   };
-  const route = () => { const h = location.hash.replace(/^#\/?/, ''); return ROUTES[h] ? h : 'synthese'; };
+  const route = () => { const h = location.hash.replace(/^#\/?/, ''); return ROUTES[h] ? h : 'trajets'; };
 
   function render(soft) {
     const name = route();
@@ -566,7 +572,7 @@
 
   // ---------- Glisser à gauche / à droite pour changer d'onglet (téléphone) ----------
   (() => {
-    const order = ['synthese', 'saisie', 'scenarios', 'rapport', 'methode'];
+    const order = ['trajets', 'synthese', 'saisie', 'scenarios', 'rapport', 'methode'];
     let x0 = null, y0 = 0;
     document.addEventListener('touchstart', e => {
       if (e.target.closest('input, select, textarea, .table-wrap, canvas, .viz-scroll')) { x0 = null; return; }
@@ -577,7 +583,7 @@
       const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
       if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
       const i = order.indexOf(route()) + (dx < 0 ? 1 : -1);
-      if (order[i]) location.hash = order[i] === 'synthese' ? '#/' : '#/' + order[i];
+      if (order[i]) location.hash = order[i] === 'trajets' ? '#/' : '#/' + order[i];
     }, { passive: true });
   })();
 
