@@ -59,10 +59,46 @@
     return { ...leg, mode, kmSol: km, kg, label: m.label, f: m.f };
   }
 
-  // Un vol (itinéraire) d'un groupe. opts : rf, direct, trainFr, eco.
+  // ---------- Leviers de réduction (onglet Scénarios ; lignes aériennes dans js/leviers.js) ----------
+  // Ligne sans escale entre deux aéroports (dans un sens ou dans l'autre), ou null.
+  function liaison(a, b) {
+    const L = (window.LEVIERS && window.LEVIERS.liaisons) || [];
+    return L.find(l => l.route === `${a}-${b}` || l.route === `${b}-${a}`) || null;
+  }
+  // Une ligne est « sûre » si elle est vérifiée et vole toute l'année (dates des Study Tours inconnues).
+  const sure = l => l.statut === 'verifie' && l.toutLAnnee;
+
+  // Itinéraire le moins émetteur entre deux aéroports, avec au plus maxLegs vols, sur les lignes connues.
+  // toutes = false : lignes sûres seulement (levier) ; true : toutes les lignes (pistes à vérifier selon les dates).
+  // Renvoie { legs, kg } en kgCO2e par passager pour un aller, ou null.
+  function meilleurItineraire(from, to, maxLegs, st, rf, toutes) {
+    const L = ((window.LEVIERS && window.LEVIERS.liaisons) || []).filter(l => toutes || sure(l));
+    const voisins = new Map();
+    for (const l of L) {
+      const [a, b] = l.route.split('-');
+      if (!voisins.has(a)) voisins.set(a, []);
+      if (!voisins.has(b)) voisins.set(b, []);
+      voisins.get(a).push(b); voisins.get(b).push(a);
+    }
+    let best = null;
+    (function explorer(code, legs, kg) {
+      if (code === to.code && legs.length) { if (!best || kg < best.kg - 1e-9) best = { legs, kg }; return; }
+      if (legs.length >= maxLegs) return;
+      for (const n of voisins.get(code) || []) {
+        if (n === from.code || legs.some(l => l.to.code === n)) continue; // pas de boucle
+        const a = aeroport(code, st), b = aeroport(n, st);
+        if (!a || !b) continue;
+        const leg = segment(a, b);
+        explorer(n, [...legs, leg], kg + leg.d * fAvion(leg, rf));
+      }
+    })(from.code, [], 0);
+    return best;
+  }
+
+  // Un vol (itinéraire) d'un groupe. opts : rf, trainFr, itineraire, eco, carToBus.
   function calcVol(v, st, opts) {
     const it = itineraire(v.route, st);
-    if (it.err) return { err: it.err, air: 0, train: 0, sol: 0, solLegs: [], corr: 0, km: 0, legs: [] };
+    if (it.err) return { err: it.err, air: 0, train: 0, sol: 0, solLegs: [], corr: 0, km: 0, legs: [], apres: [], trainLegs: [] };
     const trajets = v.ar ? 2 : 1;
     const pax = Math.max(0, +v.pax || 0);
     const coef = opts.eco ? 1 : (F.classes[v.classe] || F.classes.eco).coef;
@@ -70,29 +106,46 @@
     const solLegs = [], airLegs = [];
     it.legs.forEach((l, i) => { const m = modes[i]; if (MODES_SOL[m] && !transat(l.from, l.to)) solLegs.push(legSol(l, m, pax, trajets)); else airLegs.push(l); });
     const sol = solLegs.reduce((s, l) => s + l.kg, 0);
-    if (!airLegs.length) return { air: 0, train: 0, sol, solLegs, corr: 0, km: 0, legs: [], nCorr: 0, trajets, pax };
-    // Vol direct théorique : du premier au dernier aéroport des segments en avion.
+    if (!airLegs.length) return { air: 0, train: 0, sol, solLegs, corr: 0, km: 0, legs: [], apres: [], trainLegs: [], nCorr: 0, trajets, pax };
+    // Vol direct théorique : du premier au dernier aéroport des segments en avion (sert au poids des correspondances).
     const direct = segment(airLegs[0].from, airLegs[airLegs.length - 1].to);
     let legs = airLegs;
-    if (opts.direct && legs.length > 1) legs = [direct];
-    let air = 0, train = 0, km = 0;
-    for (const leg of legs) {
-      const fr = leg.from.pays === 'FR' && leg.to.pays === 'FR';
-      if (opts.trainFr && fr && legs.length > 1) {
-        // Pré-acheminement en TGV : distance ferroviaire ≈ orthodromie × 1,2 (hypothèse).
-        train += leg.gc * 1.2 * F.terrestre.tgv.f * pax * trajets;
-      } else {
-        air += leg.d * fAvion(leg, opts.rf) * coef * pax * trajets;
-        km += leg.d * trajets;
+    // Levier « TGV » : les vols intérieurs à la France passent en TGV, s'il reste au moins un vol.
+    // Distance en train ≈ vol d'oiseau × 1,2 (hypothèse ; effet de l'incertitude < 0,1 t, voir js/leviers.js).
+    const trainLegs = [];
+    if (opts.trainFr && legs.length > 1) {
+      const fr = l => l.from.pays === 'FR' && l.to.pays === 'FR';
+      if (legs.some(l => !fr(l))) {
+        legs.filter(fr).forEach(l => {
+          const kmSol = l.gc * MODES_SOL.train;
+          trainLegs.push({ ...l, mode: 'train', kmSol, kg: kmSol * F.terrestre.tgv.f * pax * trajets, label: F.terrestre.tgv.label });
+        });
+        legs = legs.filter(l => !fr(l));
       }
+    }
+    // Levier « Meilleur itinéraire existant » : mêmes aéroports de départ et d'arrivée, pas plus de vols,
+    // en passant par les lignes vérifiées et ouvertes toute l'année les moins émettrices (escale plus courte ou vol sans escale).
+    // Seulement si les vols se suivent (pas de trajet au sol au milieu, sinon il serait compté deux fois).
+    const contigus = legs.every((l, i) => i === 0 || legs[i - 1].to.code === l.from.code);
+    if (opts.itineraire && legs.length > 1 && contigus) {
+      const kgAvant = legs.reduce((s, l) => s + l.d * fAvion(l, opts.rf), 0);
+      const m = meilleurItineraire(legs[0].from, legs[legs.length - 1].to, legs.length, st, opts.rf, false);
+      if (m && m.kg < kgAvant - 1e-9) legs = m.legs;
+    }
+    const train = trainLegs.reduce((s, l) => s + l.kg, 0);
+    let air = 0, km = 0;
+    for (const leg of legs) {
+      air += leg.d * fAvion(leg, opts.rf) * coef * pax * trajets;
+      km += leg.d * trajets;
     }
     // Poids des correspondances : écart avec un vol direct entre le premier et le dernier aéroport.
     let corr = 0;
-    if (!opts.direct && !opts.trainFr && airLegs.length > 1) {
+    if (!opts.itineraire && !opts.trainFr && airLegs.length > 1) {
       const directKg = direct.d * fAvion(direct, opts.rf) * coef * pax * trajets;
       corr = Math.max(0, air - directKg);
     }
-    return { air, train, sol, solLegs, corr, km, legs: airLegs, direct, nCorr: airLegs.length - 1, trajets, pax };
+    // legs : itinéraire saisi (vols) ; apres : vols une fois les leviers appliqués ; trainLegs : vols remplacés par le TGV.
+    return { air, train, sol, solLegs, corr, km, legs: airLegs, apres: legs, trainLegs, direct, nCorr: airLegs.length - 1, trajets, pax };
   }
 
   function calcTerrestre(t, opts) {
@@ -167,5 +220,5 @@
     return res;
   }
 
-  window.Calc = { aeroport, orthodromie, itineraire, calcVol, calcTerrestre, calcLocation, calculer, MODES_SOL, transat };
+  window.Calc = { aeroport, orthodromie, itineraire, segment, calcVol, calcTerrestre, calcLocation, calculer, MODES_SOL, transat, liaison, meilleurItineraire };
 })();
