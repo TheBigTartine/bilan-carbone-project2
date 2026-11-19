@@ -43,15 +43,38 @@
 
   const fAvion = (leg, rf) => rf ? leg.tranche.avec : leg.tranche.sans;
 
+  // Segments au sol dans un itinéraire (onglet Trajets) : v.legModes[i] = mode du segment i
+  // (absent ou 'avion' = vol). Distance au sol = vol d'oiseau × détour (route 1,3 ; rail 1,2, hypothèses).
+  const MODES_SOL = { autocar: 1.3, voiture: 1.3, train: 1.2 };
+  // Traversée de l'Atlantique (Europe ↔ Amérique du Nord) : seul l'avion est possible.
+  const continent = p => (p === 'US' || p === 'CA' ? 'AN' : 'EU');
+  const transat = (a, b) => !!(a && b && continent(a.pays) !== continent(b.pays));
+  function legSol(leg, mode, pax, trajets) {
+    // Train : TGV entre deux villes françaises, sinon facteur nord-américain (Amtrak).
+    const cle = mode === 'train' ? (leg.from.pays === 'FR' && leg.to.pays === 'FR' ? 'tgv' : 'train_us') : mode;
+    const m = F.terrestre[cle] || F.terrestre.autocar;
+    const km = leg.gc * (MODES_SOL[mode] || 1.3);
+    // Voiture : facteur par véhicule, 4 personnes par voiture (hypothèse).
+    const kg = m.parVehicule ? km * trajets * Math.ceil(pax / 4) * m.f : km * trajets * pax * m.f;
+    return { ...leg, mode, kmSol: km, kg, label: m.label, f: m.f };
+  }
+
   // Un vol (itinéraire) d'un groupe. opts : rf, direct, trainFr, eco.
   function calcVol(v, st, opts) {
     const it = itineraire(v.route, st);
-    if (it.err) return { err: it.err, air: 0, train: 0, corr: 0, km: 0, legs: [] };
+    if (it.err) return { err: it.err, air: 0, train: 0, sol: 0, solLegs: [], corr: 0, km: 0, legs: [] };
     const trajets = v.ar ? 2 : 1;
     const pax = Math.max(0, +v.pax || 0);
     const coef = opts.eco ? 1 : (F.classes[v.classe] || F.classes.eco).coef;
-    let legs = it.legs;
-    if (opts.direct && legs.length > 1) legs = [it.direct];
+    const modes = Array.isArray(v.legModes) ? v.legModes : [];
+    const solLegs = [], airLegs = [];
+    it.legs.forEach((l, i) => { const m = modes[i]; if (MODES_SOL[m] && !transat(l.from, l.to)) solLegs.push(legSol(l, m, pax, trajets)); else airLegs.push(l); });
+    const sol = solLegs.reduce((s, l) => s + l.kg, 0);
+    if (!airLegs.length) return { air: 0, train: 0, sol, solLegs, corr: 0, km: 0, legs: [], nCorr: 0, trajets, pax };
+    // Vol direct théorique : du premier au dernier aéroport des segments en avion.
+    const direct = segment(airLegs[0].from, airLegs[airLegs.length - 1].to);
+    let legs = airLegs;
+    if (opts.direct && legs.length > 1) legs = [direct];
     let air = 0, train = 0, km = 0;
     for (const leg of legs) {
       const fr = leg.from.pays === 'FR' && leg.to.pays === 'FR';
@@ -65,11 +88,11 @@
     }
     // Poids des correspondances : écart avec un vol direct entre le premier et le dernier aéroport.
     let corr = 0;
-    if (!opts.direct && !opts.trainFr && it.legs.length > 1) {
-      const directKg = it.direct.d * fAvion(it.direct, opts.rf) * coef * pax * trajets;
+    if (!opts.direct && !opts.trainFr && airLegs.length > 1) {
+      const directKg = direct.d * fAvion(direct, opts.rf) * coef * pax * trajets;
       corr = Math.max(0, air - directKg);
     }
-    return { air, train, corr, km, legs: it.legs, nCorr: it.legs.length - 1, trajets, pax };
+    return { air, train, sol, solLegs, corr, km, legs: airLegs, direct, nCorr: airLegs.length - 1, trajets, pax };
   }
 
   function calcTerrestre(t, opts) {
@@ -118,6 +141,7 @@
         const x = calcVol(v, st, opts);
         if (x.err) res.erreurs.push(`${g.nom} — ${v.label || 'vol'} : ${x.err}`);
         r.vols.push(x); r.air += x.air; r.train += x.train; r.corr += x.corr;
+        r.terrestre += x.sol || 0; // segments en autocar / train / voiture saisis dans l'itinéraire
         if (/hypoth/i.test(v.source || '')) res.hypotheses++;
       }
       for (const t of g.terrestres) {
@@ -143,5 +167,5 @@
     return res;
   }
 
-  window.Calc = { aeroport, orthodromie, itineraire, calcVol, calcTerrestre, calcLocation, calculer };
+  window.Calc = { aeroport, orthodromie, itineraire, calcVol, calcTerrestre, calcLocation, calculer, MODES_SOL, transat };
 })();

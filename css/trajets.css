@@ -3,18 +3,79 @@
 .tj-vol { border: .5px solid var(--border); border-radius: 16px; padding: 10px 12px 8px; margin-top: 12px; background: color-mix(in srgb, var(--surface-2) 35%, transparent); }
 .tj-vol-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tj-vol-head .tj-label { font-weight: 600; min-width: 160px; flex: 1 1 160px; }
-.tj-meta { font-size: 12px; }
+.tj-meta { font-size: 12px; margin-top: 4px; }
+.tj-pax { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-2); }
+.tj-pax input { width: 64px; text-align: right; padding: 6px 8px; }
+.tj-split { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--accent-soft); font-size: 13px; }
+.tj-split input { width: 70px; text-align: right; }
+.tj-split p { flex-basis: 100%; font-size: 12px; }
+.tj-rep { font-size: 12.5px; color: var(--text-2); margin: -4px 0 4px; }
+.tj-rep b { color: var(--text); }
+.tj-rep.warn { color: var(--warn); }
 .tj-meta a { color: var(--accent); }
 .tj-vol .table-wrap { margin: 0 -12px; padding: 0 12px; }
-table.tj-air input.ac { width: 100%; min-width: 210px; }
+table.tj-air input.ac { width: 100%; min-width: 150px; }
+table.tj-air th, table.tj-air td { padding-left: 4px; padding-right: 4px; }
+table.tj-air td.num .legs { font-weight: 400; }
 .tj-step { white-space: nowrap; font-weight: 600; color: var(--text-2); font-size: 12px; }
 .tj-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); margin-right: 8px; vertical-align: middle; }
 .tj-dot.end { background: var(--accent); }
+tr.tj-sol .tj-dot { border-color: var(--c-ground); }
+tr.tj-sol .tj-dot.end { background: var(--c-ground); }
+.tj-pill-sol { background: color-mix(in srgb, var(--c-ground) 16%, transparent); color: var(--c-ground); }
+
+/* Moyen de transport d'un segment */
+.tj-modecell { white-space: nowrap; }
+table.tj-air select.tj-mode { width: auto; min-width: 0; padding: 5px 8px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; background: var(--accent-soft); color: var(--accent); }
+table.tj-air select.tj-mode:not(.m-avion) { background: color-mix(in srgb, var(--c-ground) 16%, transparent); color: var(--c-ground); }
+table.tj-air select.tj-mode option { color: var(--text); background: var(--surface); }
+.tj-mode-lock { display: inline-block; padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--text-2); border: .5px solid var(--border); cursor: help; }
+.tj-km { display: block; font-size: 11.5px; margin: 2px 0 0 10px; }
+
 .tj-vol-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; margin-top: 6px; }
+.tj-btns { display: flex; gap: 4px; flex-wrap: wrap; }
 .tj-warn { color: var(--warn); }
-table.tj-loc { min-width: 1280px; }
-table.tj-loc tfoot td { font-weight: 600; padding-top: 10px; }
 .tj-db table { min-width: 980px; }
+
+/* Voitures de location : une fiche par trajet */
+.tj-locs { display: grid; gap: 10px; }
+.tj-lc { border: .5px solid var(--border); border-radius: 16px; padding: 12px 14px; background: color-mix(in srgb, var(--surface-2) 35%, transparent); }
+.tj-lc-top { display: flex; align-items: center; gap: 10px; }
+.tj-lc-n { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--accent-soft); color: var(--accent); }
+.tj-lc-label { flex: 1 1 auto; font-weight: 600; }
+.tj-lc-kg { flex: none; font-size: 13px; color: var(--text-2); white-space: nowrap; }
+.tj-lc-kg b { font-size: 17px; color: var(--text); }
+.tj-lc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px 12px; margin-top: 12px; }
+.tj-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tj-f.w2 { grid-column: span 2; }
+.tj-f > span:first-child { font-size: 11.5px; font-weight: 600; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tj-f em { font-style: normal; font-weight: 400; color: var(--text-3); }
+.tj-f input[type="number"] { text-align: right; }
+.tj-f .field.err { border-color: var(--down); }
+.tj-unit { position: relative; display: block; }
+.tj-unit input { padding-right: 32px; }
+.tj-unit i { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 12px; color: var(--text-3); pointer-events: none; }
+.tj-chk { flex-direction: row; align-items: center; gap: 8px; align-self: end; padding-bottom: 8px; cursor: pointer; font-size: 13px; }
+.tj-lc-res { font-size: 12.5px; margin-top: 10px; }
+.tj-lc-res b { color: var(--text); }
+.tj-lc-out { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tj-out { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tj-out small { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.tj-out.pol { background: transparent; border: .5px solid var(--border); color: var(--text-2); }
+.tj-loc-tot { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-top: 12px; padding-top: 10px; border-top: .5px solid var(--border); font-size: 13px; font-weight: 600; }
+.tj-loc-tot b { font-size: 16px; }
+.tj-empty { font-size: 13px; }
+
+/* Exemples de location */
+.tj-ex { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: stretch; }
+.tj-ex-t { flex-basis: 100%; font-size: 11.5px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .04em; }
+.tj-ex-b { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 9px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); background: transparent; cursor: pointer; font-size: 13px; transition: background .15s, transform .2s; }
+.tj-ex-b b { font-weight: 600; color: var(--text); }
+.tj-ex-b b::before { content: "+ "; color: var(--accent); font-weight: 700; }
+.tj-ex-b small { font-size: 11.5px; color: var(--text-3); }
+.tj-ex-b:hover { background: var(--accent-soft); }
+@media (hover: hover) { .tj-ex-b:hover { transform: translateY(-1px); } }
+@media (max-width: 560px) { .tj-lc-grid { grid-template-columns: 1fr 1fr; } .tj-f.w2 { grid-column: 1 / -1; } .tj-lc-top { flex-wrap: wrap; } .tj-lc-label { flex-basis: calc(100% - 80px); } }
 
 /* Menu de suggestions */
 .ac-menu { position: fixed; z-index: 1000; max-height: 320px; overflow-y: auto; background: var(--surface); border: .5px solid var(--border); border-radius: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, .35); padding: 4px; font-size: 13px; }
