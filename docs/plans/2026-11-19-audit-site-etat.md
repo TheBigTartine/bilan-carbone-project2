@@ -1,0 +1,29 @@
+# État — audit du site bilan carbone
+
+- Étape : ergonomie (étape 2). Constats gardés : les 15 (choix de Théo, 19/11/2026)
+- Orientation donnée par Théo pour les nouveautés : gamifier le site, et chaque étudiant qui part doit pouvoir saisir lui-même son trajet sur le site
+- Partie auditée : tout le site (6 onglets : Trajets, Synthèse, Saisie, Scénarios, Rapport, Méthode)
+- Modèle d'exécution : Opus
+- Interdits : pas de push sur main (publie le site)
+- Commandes : pas de tests ni de types ; aperçu `python -m http.server 8000` puis http://localhost:8000 ; syntaxe `node -e "new Function(fs.readFileSync(f,'utf8'))"`
+- Départ : main au commit d905781 (fusion de scenarios-quentin)
+- Choix faits : partie = tout le site, modèle = Opus, interdit = push (19/11/2026)
+- Constats de l'audit (19/11/2026), lots :
+  - A chiffres faux : 1 sensibilité « vols en direct » à 0 (visuals.js:198) ; 2 classe appliquée au bilan principal alors que la Méthode dit « analyse complémentaire » (calc.js:104, app.js:751) ; 3 train hors France/Amérique au facteur Amtrak (calc.js:54) ; 4 double comptage exemple de location + ligne autocar IND→Bloomington (trajets.js:236, data.js:118) ; 8 coefficient de classe arrondi dans le détail (visuals.js:413)
+  - B textes : 5 « type d'avion » dans les limites du Rapport (app.js:710) ; 6 budget Rapport (bilan brut) ≠ Scénarios (résiduel) ; 9 Méthode muette sur segments au sol, locations, leviers ; 15 « ≈ 4 h » et « Paris-CDG » codés en dur (app.js:346, 387)
+  - C données : 7 prix de la tonne enregistré (30 €) qui masque le nouveau défaut 35 € (app.js:16) ; 10 facteurs carburant 2,80 / 3,16 à vérifier (vehicules.js:24)
+  - D affichages partiels : 11 parcours sans segments au sol ni locations ; 12 tCO2e d'un itinéraire différent entre Saisie et Trajets ; 13 fiabilité sans locations
+  - E cas limites : 14 autocar vers l'Islande accepté, MRS-MRS = 1,98 t, 0 participant
+- Gênes (vue 375 px, 19/11/2026) :
+  - A1 l'accueil (Trajets) est un formulaire de saisie, sans le bilan global ; A2 deux onglets de saisie (Trajets et Saisie) sur les mêmes données
+  - B1 boutons 30×30 px, cases 18×18 px, curseurs de prix 16 px de haut ; B2 « Supprimer » un vol dans Saisie sans confirmation (app.js:284), alors que Trajets confirme
+  - C1 données dans chaque navigateur ; l'import remplace tout, sans fusion (app.js:302) ; C2 classe et A/R pas réglables dans Trajets (trajets.js:193) ; C3 nouvel itinéraire = tout l'effectif, d'où l'alerte « en trop » (trajets.js:430)
+  - D1 Méthode et Rapport débordent en largeur (494 px pour 375, ligne de total visuals.js:438) ; D2 Méthode 12 782 px de haut, budget de Scénarios en bas d'une page de 4 142 px ; D3 parcours d'un étudiant qui déborde (Saisie) ; D4 tableau d'itinéraire de l'accueil à faire défiler de côté (483 px dans 279 px)
+- Nouveautés proposées : F1 saisie de son trajet par chaque étudiant (3 façons possibles, à trancher) ; F2 « Mon empreinte » ; F3 jauge collective de collecte ; F4 badges de choix bas-carbone ; F5 duel Kelley / HEC par étudiant ; F6 quiz « Devine ton empreinte »
+- Choix du 19/11/2026 : base partagée Supabase ; identité prénom + initiale ; bilan = saisies + hypothèse pour les autres ; nouvel accueil « Mon voyage » ; visite guidée ludique (F7) pour des non-ingénieurs
+- Spec : docs/specs/2026-11-19-site-bilan-spec.md ; plan : docs/plans/2026-11-19-site-bilan.md (8 phases, détail non écrit)
+- Étape : plan rédigé, en attente de validation de la spec (décisions P1 à P10) et du plan par Théo
+- Précisions du 19/11/2026 : visite guidée = calculs expliqués avec petits schémas animés, niveau non-ingénieur, ludique ; Théo est admin du dépôt (il décide des fusions, Martin est prévenu)
+- Phase 1 construite le 19/11/2026 (détail écrit : oui) : 14 contrôles chiffrés passés (script test_phase1.js du dossier temporaire), 6 onglets OK en avant et en arrière, console sans erreur ; pas encore commitée, en attente de la validation de Théo sur le site
+- Reste à faire : validation et commit de la phase 1, prévenir Maxime et Adrien, compte Supabase (Théo) avant la phase 4, puis phase 2
+- Prototypes et valeurs vérifiées : script audit_calc.js dans le dossier temporaire de la session (peut être effacé)

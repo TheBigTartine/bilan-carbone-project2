@@ -259,6 +259,15 @@
     }).filter(Boolean);
   }
 
+  // Double comptage : une ligne terrestre du même groupe qui cite les mêmes villes de départ et d'arrivée.
+  const GENERIQUES = new Set(['aeroport', 'gare', 'centre', 'ville', 'international', 'school', 'business']);
+  const mots = s => norm(s).split(/[^a-z]+/).filter(m => m.length >= 4 && !GENERIQUES.has(m));
+  function doublon(g, l) {
+    const d = mots(l.de), a = mots(l.a);
+    if (!d.length || !a.length) return null;
+    return (g.terrestres || []).find(x => { const m = new Set(mots(x.label)); return d.some(w => m.has(w)) && a.some(w => m.has(w)); }) || null;
+  }
+
   const resumeLoc = (l, x, m) => {
     if (!m) return '<span class="tj-warn">Choisissez un véhicule pour lancer le calcul.</span>';
     if (!(+l.km > 0)) return '<span class="tj-warn">Indiquez le trajet (De / À) ou la distance.</span>';
@@ -304,6 +313,7 @@
               <label class="tj-f w2"><span>Source</span><input class="field" data-lf="source" data-g="${gi}" data-i="${i}" value="${esc(l.source)}" list="sources-tj"></label>
             </div>
             <div class="tj-lc-res muted" data-out="resume">${resumeLoc(l, x, m)}</div>
+            ${(dbl => dbl ? `<div class="tj-lc-res tj-warn">⚠ Ce trajet semble déjà compté dans la ligne « ${esc(dbl.label)} » (${esc(F.terrestre[dbl.mode]?.label || dbl.mode)}, onglet Saisie). Retirez l'une des deux pour ne pas le compter deux fois.</div>` : '')(doublon(g, l))}
             <div class="tj-lc-out" data-out="outs">${sortiesLoc(x)}</div>
           </div>`; }).join('')}</div>
           <div class="tj-loc-tot num"><span>Total ${esc(g.nom.split(' (')[0])}</span><span data-tot="kg"><b>${nf(tot.kg, 1)}</b> kgCO2e</span><span class="faint" data-tot="pol">NOx ${nf(tot.nox, 1)} g · particules ${nf(tot.pm, 2)} g · CO ${nf(tot.co, 0)} g</span></div>`

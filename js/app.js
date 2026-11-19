@@ -710,7 +710,7 @@
           <li>Les facteurs sont ceux de la Base Empreinte de l'ADEME (${st.rf ? 'avec' : 'sans'} traînées), appliqués par segment de vol selon la distance. Ils ne tiennent compte ni du type d'avion, ni du taux de remplissage réel, ni de la compagnie.</li>
           <li>Les distances sont orthodromiques + ${F.correctionKm} km : elles approchent la trajectoire réelle sans la reproduire.</li>
           <li>Périmètre principal : vols et déplacements terrestres. Hébergement, restauration et achats sur place sont exclus de ce bilan (analyse complémentaire possible).</li>
-          <li>Les coefficients par classe (DEFRA) relèvent d'une autre convention et ne servent qu'en analyse complémentaire.</li>
+          <li>Les coefficients par classe viennent du DEFRA, une autre source que l'ADEME. Ils s'appliquent au bilan principal, mais seulement aux passagers hors classe économique.</li>
         </ul>
         <h2>Annexe · Détail des calculs</h2>
         <p>Chaque ligne se recalcule à la main : distance × facteur × classe × passagers × trajets.</p>
@@ -748,7 +748,7 @@
           <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th><th>Source</th></tr></thead>
           <tbody>${Object.values(F.terrestre).map(m => `<tr><td>${m.label}</td><td class="r num">${nf(m.f, 4)}</td><td class="muted">${m.parVehicule ? 'par véhicule' : 'par passager'}</td><td class="muted">${esc(m.source || '')}</td></tr>`).join('')}</tbody></table></div></div>
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
-          <p>L'ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Chaque coefficient est le rapport entre le facteur DEFRA de la classe et celui du siège moyen. La classe économique reste à 1, c'est-à-dire au facteur ADEME. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
+          <p>L'ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Chaque coefficient est le rapport entre le facteur DEFRA de la classe et celui du siège moyen. La classe économique reste à 1, c'est-à-dire au facteur ADEME. Le coefficient s'applique au bilan principal : tant que tout le monde voyage en classe économique, il ne change rien.</p>
           <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 2)}</li>`).join('')}</ul></div></div></div>
         <div class="card" style="--i:3"><h2 class="section">Quelles hypothèses pèsent le plus ?</h2>
           <p class="muted sub" style="margin:0 0 12px">Écart du bilan quand on change une seule hypothèse à la fois. Les plus grosses barres sont celles à justifier en priorité.</p>
@@ -764,7 +764,7 @@
           <li>La taille d'avion est choisie selon la distance, pas selon l'avion réellement utilisé. Un petit avion régional émet plus par passager.km.</li>
           <li>Les + ${F.correctionKm} km sont un forfait : la trajectoire réelle peut être plus longue ou plus courte.</li>
           <li>L'effet des traînées est incertain : il dépend de l'altitude, de l'humidité et de l'heure du vol. Le coefficient de l'ADEME est une moyenne, d'où l'affichage des deux résultats.</li>
-          <li>Les coefficients de classe viennent d'une autre convention (DEFRA) : ils restent en analyse complémentaire.</li>
+          <li>Les coefficients de classe viennent d'une autre source que l'ADEME (DEFRA) : ils ne comptent que pour les passagers hors classe économique.</li>
           <li>Le train en Amérique du Nord vient de l'EPA (agence américaine de l'environnement), car l'ADEME n'a pas de facteur pour ce pays. L'EPA ne compte que les émissions du train, pas la production du carburant : ce facteur est un peu sous-estimé par rapport à ceux de l'ADEME.</li>
           <li>La voiture et le taxi utilisent le facteur d'une voiture moyenne française. Une voiture américaine consomme en général plus, et un taxi roule aussi à vide entre deux clients : ces trajets sont un peu sous-estimés.</li>
           <li>Le périmètre se limite aux déplacements : hébergement, repas et achats sur place sont exclus.</li></ul></div>

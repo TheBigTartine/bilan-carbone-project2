@@ -27,7 +27,8 @@ window.FACTEURS = {
   // siège moyen 0,15282 ; éco 0,11704 ; premium 0,18726 ; affaires 0,33940 ; première 0,46814.
   // Coefficient = facteur de la classe ÷ siège moyen (ex. affaires : 0,33940 ÷ 0,15282 = 2,22).
   // L'éco reste à 1 (facteur ADEME tel quel) : choix prudent, qui ne baisse pas le bilan.
-  // C'est une autre convention, donc ils ne servent qu'en analyse complémentaire (voir Méthodologie).
+  // Le coefficient s'applique au bilan principal (un siège affaires prend plus de place) ; tant que tout
+  // le monde voyage en éco, il ne change rien. Source différente de l'ADEME : signalé dans les limites.
   classes: {
     eco: { label: 'Économique', coef: 1 },
     premium: { label: 'Premium éco', coef: 1.23 },

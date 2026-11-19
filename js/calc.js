@@ -37,7 +37,10 @@
       pts.push(a);
     }
     const legs = [];
-    for (let i = 0; i < pts.length - 1; i++) legs.push(segment(pts[i], pts[i + 1]));
+    for (let i = 0; i < pts.length - 1; i++) {
+      if (pts[i].code === pts[i + 1].code) return { err: `Deux étapes identiques à la suite : ${pts[i].code}-${pts[i].code}` };
+      legs.push(segment(pts[i], pts[i + 1]));
+    }
     return { codes, pts, legs, direct: segment(pts[0], pts[pts.length - 1]) };
   }
 
@@ -46,12 +49,13 @@
   // Segments au sol dans un itinéraire (onglet Trajets) : v.legModes[i] = mode du segment i
   // (absent ou 'avion' = vol). Distance au sol = vol d'oiseau × détour (route 1,3 ; rail 1,2, hypothèses).
   const MODES_SOL = { autocar: 1.3, voiture: 1.3, train: 1.2 };
-  // Traversée de l'Atlantique (Europe ↔ Amérique du Nord) : seul l'avion est possible.
-  const continent = p => (p === 'US' || p === 'CA' ? 'AN' : 'EU');
+  // Traversée de l'Atlantique (Europe ↔ Amérique du Nord, ou vers l'Islande) : seul l'avion est possible.
+  const continent = p => (p === 'US' || p === 'CA' ? 'AN' : p === 'IS' ? 'IS' : 'EU');
   const transat = (a, b) => !!(a && b && continent(a.pays) !== continent(b.pays));
   function legSol(leg, mode, pax, trajets) {
-    // Train : TGV entre deux villes françaises, sinon facteur nord-américain (Amtrak).
-    const cle = mode === 'train' ? (leg.from.pays === 'FR' && leg.to.pays === 'FR' ? 'tgv' : 'train_us') : mode;
+    // Train : TGV entre deux villes françaises, Amtrak en Amérique du Nord, Intercités (ADEME) ailleurs en Europe.
+    const nordAm = continent(leg.from.pays) === 'AN';
+    const cle = mode === 'train' ? (leg.from.pays === 'FR' && leg.to.pays === 'FR' ? 'tgv' : nordAm ? 'train_us' : 'intercites') : mode;
     const m = F.terrestre[cle] || F.terrestre.autocar;
     const km = leg.gc * (MODES_SOL[mode] || 1.3);
     // Voiture : facteur par véhicule, 4 personnes par voiture (hypothèse).
@@ -210,6 +214,7 @@
       }
       r.terrestre += r.train; // le train du scénario « pré-acheminement » est un déplacement terrestre
       r.total = r.air + r.terrestre;
+      if (!r.participants && r.total > 0) res.erreurs.push(`${g.nom} : 0 participant, mais des trajets sont saisis (indiquer l'effectif dans l'onglet Saisie)`);
       r.parEtudiant = r.participants ? r.total / r.participants : 0;
       res.groupes.push(r);
       res.total += r.total; res.air += r.air; res.corr += r.corr; res.terrestre += r.terrestre; res.train += r.train;

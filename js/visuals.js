@@ -195,7 +195,7 @@
     const scale = k => ({ ...st, groupes: st.groupes.map(g => ({ ...g, vols: g.vols.map(v => ({ ...v, pax: v.pax * k })), terrestres: g.terrestres.map(x => ({ ...x, pax: x.pax * k })) })) });
     const items = [
       { label: st.rf ? 'Sans les traînées' : 'Avec les traînées', v: Calc.calculer(st, { rf: !st.rf }).total, why: 'Choix de convention (effets hors CO2)' },
-      { label: 'Tous les vols en direct', v: Calc.calculer(st, { direct: true }).total, why: 'Si les escales étaient supprimées' },
+      { label: 'Meilleur itinéraire existant', v: Calc.calculer(st, { itineraire: true }).total, why: 'Lignes vérifiées les moins émettrices' },
       { label: 'Sans la correction de 95 km', v: withCorr(0, () => Calc.calculer(st).total), why: 'Distance à vol d’oiseau stricte' },
       { label: '10 % de participants en moins', v: Calc.calculer(scale(.9)).total, why: 'Effectifs finalement plus faibles' },
       { label: '10 % de participants en plus', v: Calc.calculer(scale(1.1)).total, why: 'Accompagnateurs, enseignants…' },
@@ -410,8 +410,8 @@
           return `<tr><td><b>${l.from.code} → ${l.to.code}</b><div class="faint" style="font-size:11px">${esc(l.from.nom)} → ${esc(l.to.nom)}</div></td>
             <td class="r num">${nf(l.gc, 0)}</td><td class="r num">+ ${F.correctionKm}</td><td class="r num">${nf(l.d, 0)}</td>
             <td>${esc(l.tranche.label.split(' (')[0])}</td><td class="r num">${nf(f, 4)}</td>
-            <td class="r num">${nf(coef, 1)} × ${v.pax} × ${tr}</td>
-            <td class="calc num">${nf(l.d, 0)} × ${nf(f, 4)} × ${nf(coef, 1)} × ${v.pax} × ${tr}</td><td class="r num"><b>${nf(kg, 0)}</b></td></tr>`;
+            <td class="r num">${nf(coef, 2)} × ${v.pax} × ${tr}</td>
+            <td class="calc num">${nf(l.d, 0)} × ${nf(f, 4)} × ${nf(coef, 2)} × ${v.pax} × ${tr}</td><td class="r num"><b>${nf(kg, 0)}</b></td></tr>`;
         }).join('');
       }).join('');
       const terRows = g.terrestres.map((x, i) => {
