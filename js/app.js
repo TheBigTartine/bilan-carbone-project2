@@ -120,6 +120,11 @@
           <div class="chart-box sm"><canvas id="c-rf"></canvas></div>
           <p class="muted mt" style="font-size:12.5px">Avec traînées : <b>${t(st.rf ? r.total : alt.total)} t</b> · sans : <b>${t(st.rf ? alt.total : r.total)} t</b>. Les deux conventions ne se mélangent jamais : la bascule recalcule tout le bilan.</p></div>
       </div>
+      <div class="card mt" style="--i:7"><h2 class="section">Carte des trajets</h2><p class="muted" style="font-size:12.5px;margin:-6px 0 10px">Chaque trait est un segment de vol ; plus il est épais, plus il émet.</p>${Viz.carte(st, r)}</div>
+      <div class="card mt" style="--i:8"><h2 class="section">D'où viennent les tonnes ?</h2><p class="muted" style="font-size:12.5px;margin:-6px 0 10px">Du total vers chaque groupe, puis vers chaque poste. Survoler un flux pour le chiffre.</p>${Viz.flux(r)}</div>
+      <div class="card mt" style="--i:9"><h2 class="section">Anatomie d'un voyage</h2><p class="muted" style="font-size:12.5px;margin:-6px 0 12px">Émissions d'un passager pour un aller, segment par segment, comparées à un vol direct.</p>${Viz.anatomie(st, r)}</div>
+      <h2 class="section mt2">Pour se représenter ${t(r.parEtudiant, 2)} t par étudiant</h2>
+      ${Viz.equivalences(r)}
       <div class="card mt" style="--i:7"><h2 class="section">Où partent les émissions ?</h2>
         <div class="split">
           <span style="width:${r.total ? direct / r.total * 100 : 0}%;background:var(--c-air)"></span>
@@ -299,10 +304,10 @@
   // Vue : Scénarios
   // =====================================================================
   const SCEN = [
-    { id: 'direct', titre: 'Vols directs plutôt qu’avec escale', desc: 'Remplace chaque itinéraire par un vol direct entre le premier et le dernier aéroport. À vérifier : la ligne directe doit exister aux dates du voyage.' },
-    { id: 'trainFr', titre: 'Pré-acheminement en TGV', desc: 'Les segments en avion à l’intérieur de la France (ex. MRS → CDG) sont faits en TGV (distance rail ≈ orthodromie × 1,2).' },
-    { id: 'carToBus', titre: 'Voitures et taxis remplacés par une navette', desc: 'Les trajets en voiture thermique ou en taxi passent en autocar ou navette collective.' },
-    { id: 'eco', titre: 'Tous en classe économique', desc: 'N’a d’effet que si des passagers sont saisis dans une autre classe (coefficients DEFRA).' }
+    { id: 'direct', titre: 'Vols directs plutôt qu’avec escale', court: 'Vols directs', desc: 'Remplace chaque itinéraire par un vol direct entre le premier et le dernier aéroport. À vérifier : la ligne directe doit exister aux dates du voyage.' },
+    { id: 'trainFr', titre: 'Pré-acheminement en TGV', court: 'TGV', desc: 'Les segments en avion à l’intérieur de la France (ex. MRS → CDG) sont faits en TGV (distance rail ≈ orthodromie × 1,2).' },
+    { id: 'carToBus', titre: 'Voitures et taxis remplacés par une navette', court: 'Navettes', desc: 'Les trajets en voiture thermique ou en taxi passent en autocar ou navette collective.' },
+    { id: 'eco', titre: 'Tous en classe économique', court: 'Classe éco', desc: 'N’a d’effet que si des passagers sont saisis dans une autre classe (coefficients DEFRA).' }
   ];
   function vScenarios() {
     const base = Calc.calculer(st);
@@ -313,6 +318,7 @@
     const plants = st.coutPlant > 0 ? Math.floor(budget / st.coutPlant) : 0;
     return `
       <div class="head"><div><div class="page-title">Mesurer, éviter, réduire, puis contribuer</div><h1 style="font-size:28px">Simulateur de scénarios</h1></div>${seg()}</div>
+      <div class="card" style="--i:0;margin-bottom:12px"><h2 class="section">La démarche imposée par le cahier des charges</h2>${Viz.demarche(red > 0.5 ? [0, 2, 3] : [0, 3])}</div>
       <div class="grid grid-3">
         <div class="card tilt" style="--i:0"><div class="kpi-label">Bilan mesuré</div><div class="kpi-value num" data-count="${t(base.total)}">${t(base.total)} <small>tCO2e</small></div><div class="kpi-sub">Situation saisie, sans aucune mesure</div></div>
         <div class="card tilt" style="--i:1"><div class="kpi-label"><span class="dot" style="background:var(--accent)"></span>Réduction potentielle</div><div class="kpi-value num" style="color:var(--accent)" data-count="${t(red)}">${t(red)} <small>tCO2e</small></div><div class="kpi-sub">${pct(base.total ? red / base.total : 0)} du bilan, si les mesures cochées sont appliquées</div></div>
@@ -325,7 +331,7 @@
             <div class="gain num">${alone > 0.5 ? '− ' + t(alone) + ' t' : '<span class="faint">aucun effet</span>'}</div></div>`; }).join('')}
           <p class="faint" style="font-size:12px;margin-top:10px">Le gain affiché pour chaque levier est calculé seul. Les leviers combinés ne s'additionnent pas toujours (ex. vol direct et TGV portent sur le même segment).</p>
         </div>
-        <div class="card" style="--i:4"><h2 class="section">Avant / après</h2><div class="chart-box"><canvas id="c-scen"></canvas></div></div>
+        <div class="card" style="--i:4"><h2 class="section">Cascade : du bilan mesuré au résiduel</h2>${Viz.cascade(st, SCEN)}</div>
       </div>
       <div class="card mt" style="--i:5"><h2 class="section">Contribution à financer</h2>
         <div class="grid grid-2">
@@ -340,18 +346,11 @@
             <div><div class="kpi-label">Plants finançables avec ce budget</div><div class="kpi-value num" id="plants-out">${plants.toLocaleString('fr-FR')}</div><div class="kpi-sub">Fournitures seulement (plants, protections, tuteurs), sans entretien ni suivi</div></div>
           </div>
         </div>
+        <div class="mt2">${Viz.troisResultats(red, residuel, eur(budget))}</div>
         <div class="note warn mt"><b>Trois résultats à ne jamais additionner :</b> la réduction potentielle (tCO2e évitées si on change le voyage), les émissions résiduelles, et le montant de contribution (en €). Le nombre de plants mesure un budget, <b>pas</b> des tonnes compensées : un arbre séquestre du carbone lentement, sur des décennies, et seulement s'il survit.</div>
       </div>`;
   }
   function aScenarios(view) {
-    const base = Calc.calculer(st), sc = Calc.calculer(st, st.scenarios);
-    chart($('#c-scen'), {
-      type: 'bar',
-      data: { labels: ['Bilan mesuré', 'Après réduction'], datasets: [
-        { label: 'Aérien', data: [base.air / 1000, sc.air / 1000], backgroundColor: col('--c-air'), borderRadius: 8, borderSkipped: false },
-        { label: 'Terrestre', data: [base.terrestre / 1000, sc.terrestre / 1000], backgroundColor: col('--c-ground'), borderRadius: 8, borderSkipped: false }
-      ] }, options: barOpts(true)
-    });
     view.addEventListener('change', e => {
       const s = e.target.dataset.scen; if (!s) return;
       st.scenarios[s] = e.target.checked; save();
@@ -366,6 +365,7 @@
       $('#prix-out').textContent = `${st.prixTonne} € / tCO2e`;
       $('#plant-out').textContent = `${nf(st.coutPlant, 2)} €`;
       $('#budget-out').textContent = eur(budget);
+      const tb = $$('.three-box b'); if (tb[2]) tb[2].textContent = eur(budget);
       $('#plants-out').textContent = Math.floor(budget / st.coutPlant).toLocaleString('fr-FR');
     });
   }
@@ -402,6 +402,9 @@
           <div class="card" style="--i:2"><h3 style="margin-bottom:8px"><span class="dot" style="background:var(--c-hec)"></span> ${esc(h.nom)}</h3>${table(h)}</div>
         </div>
 
+        <div class="card mt" style="--i:3"><h3 style="margin-bottom:10px">Flux des émissions</h3>${Viz.flux(r)}</div>
+        <div class="card mt" style="--i:4"><h3 style="margin-bottom:10px">Carte des trajets</h3>${Viz.carte(st, r)}</div>
+
         <h2>2. Réponses aux questions du cahier des charges</h2>
         <p class="q">Quel groupe génère le plus d'émissions ?</p>
         <p>${esc(top.nom)}, avec ${t(top.total)} tCO2e (${pct(r.total ? top.total / r.total : 0)} du total), contre ${t(other.total)} t pour ${esc(other.nom)}. Par étudiant : ${t(top.parEtudiant, 2)} t contre ${t(other.parEtudiant, 2)} t.</p>
@@ -409,6 +412,7 @@
         <p>${nf(r.partAir * 100, 1)} % des émissions (${t(r.air)} t). C'est de loin le premier poste : c'est là que se jouent les décisions.</p>
         <p class="q">Quel est le poids des correspondances ?</p>
         <p>${r.corr > 0.5 ? `${t(r.corr)} tCO2e, soit ${pct(r.corr / r.total)} du bilan. C'est le surplus par rapport à des vols directs sur les mêmes origines et destinations : un détour, plus un décollage supplémentaire compté au facteur court-courrier, plus élevé.` : 'Aucun itinéraire saisi ne comporte de correspondance.'}</p>
+        <div class="card mt">${Viz.anatomie(st, r)}</div>
         <p class="q">Quel est le poids des déplacements terrestres ?</p>
         <p>${t(r.terrestre, 2)} tCO2e, soit ${pct(r.total ? r.terrestre / r.total : 0)} du bilan. C'est faible, mais facile à réduire et visible pour les participants.</p>
         <p class="q">Quelles sont les possibilités de réduction ?</p>
@@ -417,14 +421,20 @@
         <p>Selon le prix retenu par tonne (le pôle compensation doit fixer et justifier ce prix) :</p>
         <table style="max-width:460px"><thead><tr><th>Prix par tonne</th><th class="r">Budget pour ${t(r.total)} t</th></tr></thead><tbody>${prix.map(p => `<tr><td>${p} € / tCO2e</td><td class="r num">${eur(r.total / 1000 * p)}</td></tr>`).join('')}</tbody></table>
 
-        <h2>3. Limites du calcul</h2>
+        <h2>3. Méthode de calcul</h2>
+        ${Viz.chaine()}
+
+        <h2>4. Limites du calcul</h2>
         <ul>
           <li>Les facteurs sont ceux de la Base Empreinte de l'ADEME (${st.rf ? 'avec' : 'sans'} traînées), appliqués par segment de vol selon la distance. Ils ne tiennent compte ni du type d'avion, ni du taux de remplissage réel, ni de la compagnie.</li>
           <li>Les distances sont orthodromiques + ${F.correctionKm} km : elles approchent la trajectoire réelle sans la reproduire.</li>
           <li>Périmètre principal : vols et déplacements terrestres. Hébergement, restauration et achats sur place sont exclus de ce bilan (analyse complémentaire possible).</li>
           <li>Les coefficients par classe (DEFRA) relèvent d'une autre convention et ne servent qu'en analyse complémentaire.</li>
         </ul>
-        <p class="faint" style="margin-top:24px;font-size:12px">Document généré par l'outil de bilan carbone du pôle. Méthode détaillée : onglet Méthode.</p>
+        <h2>Annexe · Détail des calculs</h2>
+        <p>Chaque ligne se recalcule à la main : distance × facteur × classe × passagers × trajets.</p>
+        ${Viz.detail(st, r)}
+        <p class="faint" style="margin-top:24px;font-size:12px">Document produit par le pôle bilan carbone (Project 2). Méthode détaillée : onglet Méthode.</p>
       </div>`;
   }
   function aRapport(view) { view.addEventListener('click', e => { if (e.target.closest('[data-act="print"]')) window.print(); }); }
@@ -436,6 +446,8 @@
     return `
       <div class="head"><div><div class="page-title">Note méthodologique</div><h1 style="font-size:28px">Comment le bilan est calculé</h1></div></div>
       <div class="method stack">
+        <div class="card" style="--i:0"><h2 class="section">La chaîne de calcul</h2>${Viz.chaine()}</div>
+        <div class="card" style="--i:0"><h2 class="section">Pourquoi + ${F.correctionKm} km ?</h2>${Viz.schemaDistance()}</div>
         <div class="card" style="--i:0"><h2 class="section">Formule</h2>
           <p>Pour chaque segment de vol : <code>émissions = (distance orthodromique + ${F.correctionKm} km) × facteur ADEME de la tranche × coefficient de classe × passagers × trajets</code>.</p>
           <p class="mt">Pour chaque trajet terrestre : <code>km × trajets × passagers × facteur</code>, ou, pour une voiture, <code>km × trajets × nombre de véhicules × facteur par véhicule</code>.</p>
@@ -443,6 +455,7 @@
         <div class="card" style="--i:1"><h2 class="section">Facteurs aériens (kgCO2e par passager.km)</h2>
           <div class="table-wrap"><table><thead><tr><th>Tranche de distance</th><th class="r">Avec traînées</th><th class="r">Sans traînées</th></tr></thead>
           <tbody>${F.avion.map(a => `<tr><td>${a.label}</td><td class="r num">${nf(a.avec, 4)}</td><td class="r num">${nf(a.sans, 4)}</td></tr>`).join('')}</tbody></table></div>
+          <div class="mt2">${Viz.escalier(st, Calc.calculer(st))}</div>
           <div class="note mt"><b>Traînées et effets hors CO2.</b> En altitude, les avions forment des traînées de condensation et émettent des oxydes d'azote, qui réchauffent le climat en plus du CO2. L'ADEME publie deux jeux de facteurs : avec ces effets (environ ×1,8) et sans. Le bilan principal utilise <b>${st.rf ? 'la version avec traînées' : 'la version sans traînées'}</b>. La bascule recalcule tout avec l'autre jeu, sans jamais mélanger les deux.</div></div>
         <div class="card" style="--i:2"><h2 class="section">Facteurs terrestres</h2>
           <div class="table-wrap"><table><thead><tr><th>Mode</th><th class="r">kgCO2e / km</th><th>Unité</th></tr></thead>
@@ -450,6 +463,9 @@
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
           <p>L'ADEME ne distingue pas les classes. Les coefficients suivants viennent du DEFRA (gouvernement britannique) : ils reflètent la place occupée dans l'avion. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
           <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 1)}</li>`).join('')}</ul></div>
+        <div><h2 class="section mt2" id="calculs">Calculs détaillés, segment par segment</h2>
+          <p class="muted" style="font-size:13px">Toutes les étapes avec les données saisies (${st.rf ? 'avec' : 'sans'} traînées). Chaque résultat peut être vérifié à la calculatrice.</p>
+          ${Viz.detail(st, Calc.calculer(st))}</div>
         <div class="card" style="--i:4"><h2 class="section">Communication responsable</h2>
           <ul><li>Ne pas annoncer de neutralité carbone non démontrée.</li><li>Ne pas présenter des arbres plantés comme des tonnes de CO2 compensées immédiatement.</li><li>Ne jamais additionner émissions évitées, émissions réduites et contributions financées.</li><li>Ne pas confondre un financement environnemental avec un crédit carbone.</li><li>Toujours indiquer la convention retenue (avec ou sans traînées) et les limites.</li></ul></div>
         <div class="note warn" style="--i:5"><b>À faire par le pôle avant le bilan définitif :</b> vérifier chaque facteur dans la version en vigueur de la <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a> et le corriger dans <code>js/data.js</code> si besoin. Source actuelle : ${esc(F.version)}.</div>
@@ -488,10 +504,31 @@
     const nav = $('#nav'); let b = $('.bubble', nav);
     if (!b) { b = document.createElement('span'); b.className = 'bubble'; nav.prepend(b); nav.classList.add('has-bubble'); b.style.transition = 'none'; requestAnimationFrame(() => (b.style.transition = '')); }
     const a = $('a.active', nav); if (!a) return;
+    const pos = `translate(${a.offsetLeft}px, ${a.offsetTop}px)`;
+    if (b.style.transform && b.style.transform !== pos && !calm()) {
+      b.classList.remove('moving'); void b.offsetWidth; b.classList.add('moving');
+    }
     b.style.width = a.offsetWidth + 'px'; b.style.height = a.offsetHeight + 'px';
-    b.style.transform = `translate(${a.offsetLeft}px, ${a.offsetTop}px)`;
+    b.style.transform = pos;
   }
-  addEventListener('resize', moveBubble);
+  addEventListener('resize', () => { const b = $('#nav .bubble'); if (b) b.style.transform = ''; moveBubble(); });
+
+  // ---------- Glisser à gauche / à droite pour changer d'onglet (téléphone) ----------
+  (() => {
+    const order = ['synthese', 'saisie', 'scenarios', 'rapport', 'methode'];
+    let x0 = null, y0 = 0;
+    document.addEventListener('touchstart', e => {
+      if (e.target.closest('input, select, textarea, .table-wrap, canvas, .viz-scroll')) { x0 = null; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (x0 == null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0; x0 = null;
+      if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * .6) return;
+      const i = order.indexOf(route()) + (dx < 0 ? 1 : -1);
+      if (order[i]) location.hash = order[i] === 'synthese' ? '#/' : '#/' + order[i];
+    }, { passive: true });
+  })();
 
   // ---------- Cartes qui s'inclinent (souris) ----------
   function tilt(root) {
@@ -538,8 +575,12 @@
   }
 
   addEventListener('hashchange', () => {
-    if (document.startViewTransition && !calm()) document.startViewTransition(() => render());
-    else render();
+    // Transition animée si possible ; sinon (onglet en arrière-plan, navigateur ancien) rendu direct.
+    if (!document.startViewTransition || calm() || document.hidden) return render();
+    let done = false;
+    const vt = document.startViewTransition(() => { done = true; render(); });
+    vt.updateCallbackDone.catch(() => { if (!done) render(); });
+    vt.finished.catch(() => {});
   });
   render();
   splash();
