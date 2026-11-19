@@ -34,27 +34,43 @@
   const maps = new Map();
   let mapId = 0;
 
+  // opts.H : hauteur ; opts.groupe : n'afficher qu'un groupe ; opts.scen : leviers de réduction (carte avant / après).
   function carte(st, r, opts = {}) {
     const segs = new Map(), pts = new Map();
-    st.groupes.forEach((g, gi) => g.vols.forEach((v, vi) => {
-      const x = r.groupes[gi].vols[vi]; if (!x.legs) return;
-      x.legs.forEach(l => {
-        const coef = (F.classes[v.classe] || F.classes.eco).coef;
-        const kg = l.d * (st.rf ? l.tranche.avec : l.tranche.sans) * coef * (+v.pax || 0) * (v.ar ? 2 : 1);
-        const k = `${gi}|${l.from.code}|${l.to.code}`;
-        const o = segs.get(k) || { gi, a: l.from, b: l.to, kg: 0, d: l.d, tr: l.tranche.label };
-        o.kg += kg; segs.set(k, o);
-        pts.set(l.from.code, l.from); pts.set(l.to.code, l.to);
+    const add = (k, o) => { const e = segs.get(k); if (e) e.kg += o.kg; else segs.set(k, o); pts.set(o.a.code, o.a); pts.set(o.b.code, o.b); };
+    st.groupes.forEach((g, gi) => {
+      if (opts.groupe != null && gi !== opts.groupe) return;
+      g.vols.forEach((v, vi) => {
+        const x = r.groupes[gi].vols[vi]; if (!x.legs || !x.legs.length) return;
+        const coef = (F.classes[v.classe] || F.classes.eco).coef, n = (+v.pax || 0) * (v.ar ? 2 : 1);
+        const kgAir = l => l.d * (st.rf ? l.tranche.avec : l.tranche.sans) * coef * n;
+        if (!opts.scen) {
+          x.legs.forEach(l => add(`${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'air', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label }));
+          return;
+        }
+        // Avant : itinéraire saisi, en fantôme. Après : itinéraire avec les leviers cochés.
+        const it = Calc.itineraire(v.route, st);
+        x.legs.forEach(l => add(`g${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'ghost', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label }));
+        let legs = (opts.scen.direct && x.legs.length > 1) ? [it.direct] : x.legs;
+        legs.forEach(l => {
+          const fr = l.from.pays === 'FR' && l.to.pays === 'FR';
+          if (opts.scen.trainFr && fr && legs.length > 1) add(`t${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'train', a: l.from, b: l.to, kg: l.gc * 1.2 * F.terrestre.tgv.f * n, d: l.gc * 1.2, tr: 'TGV' });
+          else add(`${gi}|${l.from.code}|${l.to.code}`, { gi, kind: 'air', a: l.from, b: l.to, kg: kgAir(l), d: l.d, tr: l.tranche.label });
+        });
       });
-    }));
-    if (!segs.size) return '<p class="muted">Aucun vol valide à afficher.</p>';
-    const id = 'map-' + (++mapId);
-    maps.set(id, { st, segs: [...segs.values()], pts: [...pts.values()], H: opts.H || 470 });
-    return `<div class="map-wrap" data-map="${id}"><div class="map-skel" style="aspect-ratio:860/${opts.H || 470}"><span>Chargement de la carte…</span></div></div>
-      <div class="legend mt"><span><i class="dot" style="background:var(--c-kelley)"></i>Kelley</span><span><i class="dot" style="background:var(--c-hec)"></i>HEC Montréal</span><span><i class="dot" style="background:var(--land-hl)"></i>Pays du voyage</span><span class="faint">Épaisseur du trait = émissions du segment · survoler un trait pour le détail</span></div>`;
+    });
+    if (!segs.size) return '<p class="muted">Aucun vol valide à afficher : vérifier les codes aéroport.</p>';
+    const id = 'map-' + (++mapId), H = opts.H || 470;
+    maps.set(id, { st, segs: [...segs.values()], pts: [...pts.values()], H });
+    const one = opts.groupe != null;
+    const legend = opts.scen
+      ? `<span><i class="line-key ghost"></i>Avant (itinéraire saisi)</span><span><i class="dot" style="background:var(--c-kelley)"></i><i class="dot" style="background:var(--c-hec)"></i>Après, en avion</span><span><i class="line-key train"></i>Après, en TGV</span>`
+      : `${one ? '' : '<span><i class="dot" style="background:var(--c-kelley)"></i>Kelley</span><span><i class="dot" style="background:var(--c-hec)"></i>HEC Montréal</span>'}<span><i class="dot" style="background:var(--land-hl)"></i>Pays du voyage</span>`;
+    return `<div class="map-wrap" data-map="${id}"><div class="map-skel" style="aspect-ratio:860/${H}"><span>Chargement de la carte…</span></div></div>
+      ${opts.noLegend ? '' : `<div class="legend mt">${legend}<span class="faint">Épaisseur du trait = émissions · survoler un trait pour le détail</span></div>`}`;
   }
 
-  const tipSeg = (s, st) => `<b>${s.a.code} → ${s.b.code}</b><br>${esc(s.a.nom)} → ${esc(s.b.nom)}<br>${esc(st.groupes[s.gi].nom)}<br>${nf(s.d, 0)} km · ${esc(s.tr)}<br><b>${t(s.kg, 2)} tCO2e</b> (A/R, tout le groupe)`;
+  const tipSeg = (s, st) => `${s.kind === 'ghost' ? '<i>Avant</i> · ' : s.kind === 'train' ? '<i>En TGV</i> · ' : ''}<b>${s.a.code} → ${s.b.code}</b><br>${esc(s.a.nom)} → ${esc(s.b.nom)}<br>${esc(st.groupes[s.gi].nom)}<br>${nf(s.d, 0)} km · ${esc(s.tr)}<br><b>${t(s.kg, 2)} tCO2e</b> (A/R, tout le groupe)`;
 
   function dessinerCarte(m, world) {
     const W = 860, H = m.H;
@@ -72,11 +88,14 @@
     const inView = ([x, y]) => x > 20 && x < W - 20 && y > 14 && y < H - 10;
     const names = PAYS.map(([n, lon, lat, v]) => { const p = proj([lon, lat]); return p && inView(p) ? `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" class="map-country${v ? ' v' : ''}">${n}</text>` : ''; }).join('')
       + MERS.map(([n, lon, lat]) => { const p = proj([lon, lat]); return p && inView(p) ? `<text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}" class="map-sea">${n}</text>` : ''; }).join('');
-    const max = Math.max(...m.segs.map(s => s.kg));
+    const max = Math.max(...m.segs.filter(s => s.kind !== 'train').map(s => s.kg));
     // Routes : géodésiques (grand cercle). Le groupe HEC est dessiné au-dessus, un peu plus fin.
-    const arcs = [...m.segs].sort((a, b) => a.gi - b.gi).map((s, i) => {
+    const order = { ghost: 0, train: 1, air: 2 };
+    const arcs = [...m.segs].sort((a, b) => order[a.kind] - order[b.kind] || a.gi - b.gi).map((s, i) => {
       const d = path({ type: 'LineString', coordinates: [[s.a.lon, s.a.lat], [s.b.lon, s.b.lat]] });
       const w = (1.6 + 8 * Math.sqrt(s.kg / max)) * (s.gi ? .8 : 1);
+      if (s.kind === 'ghost') return `<path d="${d}" class="route ghost" stroke-width="${Math.max(2, w * .55).toFixed(1)}" data-tip="${tipSeg(s, m.st)}"/>`;
+      if (s.kind === 'train') return `<path d="${d}" class="route-halo" stroke-width="9"/><path class="route train" d="${d}" data-tip="${tipSeg(s, m.st)}"/>`;
       return `<path d="${d}" class="route-halo" stroke-width="${(w + 3).toFixed(1)}"/>
         <path class="draw route" pathLength="1" style="--d:${350 + i * 170}ms" d="${d}" stroke="${GC[s.gi]}" stroke-width="${w.toFixed(1)}" data-tip="${tipSeg(s, m.st)}"/>`;
     }).join('');
@@ -122,6 +141,76 @@
     }).catch(() => {
       wraps.forEach(w => { const m = maps.get(w.dataset.map); if (m && w.isConnected) w.innerHTML = schema(m); });
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Parcours d'un étudiant : chaque étape du voyage (aller + retour), cercle proportionnel aux kgCO2e
+  // ---------------------------------------------------------------------
+  const MODE_IC = {
+    avion: '<path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/>',
+    bus: '<path d="M4 16c0 .9.4 1.7 1 2.2V20a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h8v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1.8c.6-.5 1-1.3 1-2.2V6c0-3.5-3.6-4-8-4S4 2.5 4 6zm3.5 1a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM18 11H6V6h12z"/>',
+    metro: '<path d="M12 2C8 2 4 2.5 4 6v9.5A3.5 3.5 0 0 0 7.5 19L6 20.5v.5h12v-.5L16.5 19a3.5 3.5 0 0 0 3.5-3.5V6c0-3.5-4-4-8-4zm-4.5 15a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zM18 10H6V6h12z"/>'
+  };
+  const modeIcon = mode => mode === 'avion' ? 'avion' : /tgv|ter|intercites|train/.test(mode) ? 'train' : /voiture|taxi/.test(mode) ? 'voiture' : mode === 'metro' ? 'metro' : 'bus';
+
+  function parcours(st, r, gi) {
+    const g = st.groupes[gi], R = r.groupes[gi], n = Math.max(1, +g.participants || 0);
+    const steps = [];
+    const ter = g.terrestres.map((x, i) => ({ type: modeIcon(x.mode), label: x.label, sub: `${F.terrestre[x.mode]?.label || ''} · ${x.km} km${x.ar ? ' × 2' : ''}`, kg: R.terr[i] / n }));
+    if (ter.length) steps.push(ter[0]);
+    g.vols.forEach((v, vi) => (R.vols[vi].legs || []).forEach(l => {
+      const coef = (F.classes[v.classe] || F.classes.eco).coef;
+      steps.push({ type: 'avion', label: `${l.from.code} → ${l.to.code}`, sub: `${nf(l.d, 0)} km${v.ar ? ' × 2' : ''}`, kg: l.d * (st.rf ? l.tranche.avec : l.tranche.sans) * coef * (v.ar ? 2 : 1) * (+v.pax || 0) / n });
+    }));
+    steps.push(...ter.slice(1));
+    if (!steps.length) return '';
+    const max = Math.max(...steps.map(s => s.kg), 1), tot = steps.reduce((a, s) => a + s.kg, 0);
+    return `<div class="trip">${steps.map((s, i) => {
+      const size = 30 + 46 * Math.sqrt(s.kg / max);
+      return `<div class="trip-step ${s.type === 'avion' ? 'air' : 'ground'}" style="--i:${i}" data-tip="<b>${esc(s.label)}</b><br>${esc(s.sub)}<br><b>${nf(s.kg, 1)} kgCO2e</b> par étudiant (${nf(tot ? s.kg / tot * 100 : 0, 1)} %)">
+        <div class="trip-dot" style="width:${size.toFixed(0)}px;height:${size.toFixed(0)}px"><svg viewBox="0 0 24 24">${MODE_IC[s.type] || (s.type === 'train' ? ICON.train : ICON.car)}</svg></div>
+        <div class="trip-kg num">${s.kg >= 10 ? nf(s.kg, 0) : nf(s.kg, 1)} kg</div><div class="trip-lab">${esc(s.label)}</div></div>`;
+    }).join('<div class="trip-link" aria-hidden="true"></div>')}</div>
+      <div class="trip-total"><span>Total par étudiant, aller et retour</span><b class="num">${nf(tot, 0)} kgCO2e</b></div>`;
+  }
+
+  // ---------------------------------------------------------------------
+  // Fiabilité des données : part du bilan qui repose sur des hypothèses
+  // ---------------------------------------------------------------------
+  function fiabilite(st, r) {
+    let hyp = 0, ok = 0, nh = 0, nok = 0;
+    st.groupes.forEach((g, gi) => {
+      g.vols.forEach((v, i) => { const kg = r.groupes[gi].vols[i].air; if (/hypoth/i.test(v.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
+      g.terrestres.forEach((x, i) => { const kg = r.groupes[gi].terr[i]; if (/hypoth/i.test(x.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
+    });
+    const tot = hyp + ok || 1, p = ok / tot;
+    return `<div class="fiab" data-tip="<b>Fiabilité des données</b><br>${t(ok)} t viennent de données sourcées (${nok} lignes)<br>${t(hyp)} t reposent sur des hypothèses (${nh} lignes)">
+      <div class="fiab-top"><span>Données sourcées : <b class="num">${nf(p * 100, 0)} %</b> du bilan</span><span class="faint">${nok} ligne${nok > 1 ? 's' : ''} sourcée${nok > 1 ? 's' : ''} · ${nh} en hypothèse</span></div>
+      <div class="fiab-bar"><span class="ok" style="width:${p * 100}%"></span><span class="hyp" style="width:${(1 - p) * 100}%"></span></div></div>`;
+  }
+
+  // ---------------------------------------------------------------------
+  // Sensibilité : de combien le bilan bouge si l'on change une hypothèse de calcul
+  // ---------------------------------------------------------------------
+  function sensibilite(st) {
+    const base = Calc.calculer(st).total;
+    const withCorr = (km, fn) => { const old = F.correctionKm; F.correctionKm = km; try { return fn(); } finally { F.correctionKm = old; } };
+    const scale = k => ({ ...st, groupes: st.groupes.map(g => ({ ...g, vols: g.vols.map(v => ({ ...v, pax: v.pax * k })), terrestres: g.terrestres.map(x => ({ ...x, pax: x.pax * k })) })) });
+    const items = [
+      { label: st.rf ? 'Sans les traînées' : 'Avec les traînées', v: Calc.calculer(st, { rf: !st.rf }).total, why: 'Choix de convention (effets hors CO2)' },
+      { label: 'Tous les vols en direct', v: Calc.calculer(st, { direct: true }).total, why: 'Si les escales étaient supprimées' },
+      { label: 'Sans la correction de 95 km', v: withCorr(0, () => Calc.calculer(st).total), why: 'Distance à vol d’oiseau stricte' },
+      { label: '10 % de participants en moins', v: Calc.calculer(scale(.9)).total, why: 'Effectifs finalement plus faibles' },
+      { label: '10 % de participants en plus', v: Calc.calculer(scale(1.1)).total, why: 'Accompagnateurs, enseignants…' },
+      { label: 'Pré-acheminement en TGV', v: Calc.calculer(st, { trainFr: true }).total, why: 'Marseille → Paris en train' }
+    ].map(o => ({ ...o, d: o.v - base })).sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+    const m = Math.max(...items.map(o => Math.abs(o.d)), 1);
+    return `<div class="tornado">${items.map((o, i) => `
+      <div class="tor-row" style="--i:${i}" data-tip="<b>${esc(o.label)}</b><br>${esc(o.why)}<br>Bilan : ${t(o.v)} t au lieu de ${t(base)} t">
+        <span class="tor-lab">${esc(o.label)}</span>
+        <div class="tor-track"><span class="tor-bar ${o.d < 0 ? 'neg' : 'pos'}" style="width:${Math.abs(o.d) / m * 50}%"></span></div>
+        <span class="tor-val num ${o.d < 0 ? 'neg' : 'pos'}">${o.d < 0 ? '−' : '+'} ${t(Math.abs(o.d))} t</span></div>`).join('')}</div>
+      <p class="faint" style="font-size:12px;margin-top:8px">Barre vers la gauche : le bilan baisse ; vers la droite : il augmente. Bilan de référence : ${t(base)} tCO2e.</p>`;
   }
 
   // ---------------------------------------------------------------------
@@ -383,5 +472,5 @@
   document.addEventListener('focusin', e => { const el = e.target.closest?.('.term'); if (el) { const r = el.getBoundingClientRect(); show(el, r.left, r.bottom - 8); } });
   document.addEventListener('focusout', e => { if (e.target.closest?.('.term')) hide(); });
 
-  window.Viz = { carte, hydrateMaps, flux, anatomie, equivalences, cascade, demarche, troisResultats, chaine, schemaDistance, escalier, detail };
+  window.Viz = { carte, hydrateMaps, parcours, fiabilite, sensibilite, flux, anatomie, equivalences, cascade, demarche, troisResultats, chaine, schemaDistance, escalier, detail };
 })();

@@ -80,7 +80,7 @@
       <div class="kpi-label">${color ? `<span class="dot" style="background:${color}"></span>` : ''}${label}</div>
       <div class="kpi-value num" data-count="${t(kg)}">${t(kg)} <small>tCO2e</small></div>
       <div class="kpi-sub">${sub}</div></div>`;
-  const hypoNote = r => r.hypotheses ? `<div class="note warn mt" style="--i:2"><b>${r.hypotheses} ligne${r.hypotheses > 1 ? 's' : ''} encore en hypothèse.</b> Les résultats sont provisoires tant que les données des responsables des Study Tours ne sont pas saisies (onglet <a href="#/saisie">Saisie</a>, colonne « Source »).</div>` : '';
+  const hypoNote = r => r.hypotheses ? `<div class="note warn mt" style="--i:2"><b>${r.hypotheses} ligne${r.hypotheses > 1 ? 's' : ''} encore en hypothèse.</b> Les résultats sont provisoires tant que les données des responsables des Study Tours ne sont pas saisies (onglet <a href="#/saisie">Saisie</a>, colonne « Source »).${Viz.fiabilite(st, r)}</div>` : '';
   const errNote = r => r.erreurs.length ? `<div class="note warn mt">${r.erreurs.map(esc).join('<br>')}</div>` : '';
 
   // =====================================================================
@@ -195,6 +195,10 @@
           <label class="inline muted">Participants <input class="field w-num num" type="number" min="0" data-g="${gi}" data-f="participants" value="${g.participants}"></label>
           <span class="pill accent" style="margin-left:auto" id="tot-${gi}">${t(r.groupes[gi].total)} tCO2e</span>
         </div>
+        <div class="saisie-viz">
+          <div class="mini-map" id="mini-${gi}">${Viz.carte(st, r, { groupe: gi, H: 430, noLegend: true })}</div>
+          <div><h3>Parcours d'un étudiant</h3><p class="muted sub" style="margin:2px 0 10px">Chaque étape, cercle proportionnel aux émissions. Se met à jour pendant la saisie.</p><div id="trip-${gi}">${Viz.parcours(st, r, gi)}</div></div>
+        </div>
         <h3>Vols</h3>
         <div class="table-wrap"><table>
           <thead><tr><th>Libellé</th><th>Itinéraire (codes IATA)</th><th class="r">Passagers</th><th>Classe</th><th>A/R</th><th>Source</th><th class="r">tCO2e</th><th></th></tr></thead>
@@ -239,7 +243,18 @@
       const tot = $(`#tot-${gi}`); if (tot) tot.textContent = `${t(g.total)} tCO2e`;
       g.vols.forEach((v, i) => { const o = $(`#out-${gi}-vols-${i}`); if (o) o.textContent = t(v.air); const l = $(`#legs-${gi}-${i}`); if (l) l.innerHTML = legsInfo(st.groupes[gi].vols[i]); });
       g.terr.forEach((kg, i) => { const o = $(`#out-${gi}-terrestres-${i}`); if (o) o.textContent = t(kg, 2); });
+      const trip = $(`#trip-${gi}`); if (trip) trip.innerHTML = Viz.parcours(st, r, gi);
     });
+    // La mini-carte se redessine un instant après la frappe (pas à chaque lettre).
+    clearTimeout(refreshSaisie._m);
+    refreshSaisie._m = setTimeout(() => {
+      const r2 = Calc.calculer(st);
+      st.groupes.forEach((g, gi) => {
+        const box = $(`#mini-${gi}`); if (!box) return;
+        box.innerHTML = Viz.carte(st, r2, { groupe: gi, H: 430, noLegend: true });
+        Viz.hydrateMaps(box);
+      });
+    }, 500);
   }
 
   function aSaisie(view) {
@@ -338,7 +353,12 @@
             <div class="gain num">${alone > 0.5 ? '− ' + t(alone) + ' t' : '<span class="faint">aucun effet</span>'}</div></div>`; }).join('')}
           <p class="faint" style="font-size:12px;margin-top:10px">Le gain affiché pour chaque levier est calculé seul. Les leviers combinés ne s'additionnent pas toujours (ex. vol direct et TGV portent sur le même segment).</p>
         </div>
-        <div class="card" style="--i:4"><h2 class="section">Cascade : du bilan mesuré au résiduel</h2>${Viz.cascade(st, SCEN)}</div>
+        <div class="stack">
+          <div class="card" style="--i:4"><h2 class="section">Cascade : du bilan mesuré au résiduel</h2>${Viz.cascade(st, SCEN)}</div>
+          <div class="card" style="--i:5"><h2 class="section">Sur la carte : avant / après</h2>
+            ${st.scenarios.direct || st.scenarios.trainFr ? '' : '<p class="muted sub" style="margin:0 0 8px">Active « vols directs » ou « TGV » pour voir les itinéraires changer.</p>'}
+            ${Viz.carte(st, base, { scen: st.scenarios, H: 420 })}</div>
+        </div>
       </div>
       <div class="card mt" style="--i:5"><h2 class="section">Contribution à financer</h2>
         <div class="grid grid-2">
@@ -434,6 +454,7 @@
         ${Viz.chaine()}
 
         <h2>4. Limites du calcul</h2>
+        <div class="card" style="margin-bottom:12px"><h3 style="margin-bottom:10px">Sensibilité du résultat aux hypothèses</h3>${Viz.sensibilite(st)}</div>
         <ul>
           <li>Les facteurs sont ceux de la Base Empreinte de l'ADEME (${st.rf ? 'avec' : 'sans'} traînées), appliqués par segment de vol selon la distance. Ils ne tiennent compte ni du type d'avion, ni du taux de remplissage réel, ni de la compagnie.</li>
           <li>Les distances sont orthodromiques + ${F.correctionKm} km : elles approchent la trajectoire réelle sans la reproduire.</li>
@@ -478,6 +499,9 @@
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
           <p>L'ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Chaque coefficient est le rapport entre le facteur DEFRA de la classe et celui du siège moyen. La classe économique reste à 1, c'est-à-dire au facteur ADEME. Ils ne sont à utiliser qu'en analyse complémentaire.</p>
           <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 2)}</li>`).join('')}</ul></div></div></div>
+        <div class="card" style="--i:3"><h2 class="section">Quelles hypothèses pèsent le plus ?</h2>
+          <p class="muted sub" style="margin:0 0 12px">Écart du bilan quand on change une seule hypothèse à la fois. Les plus grosses barres sont celles à justifier en priorité.</p>
+          ${Viz.sensibilite(st)}</div>
         <div><h2 class="section mt2" id="calculs">Calculs détaillés, segment par segment</h2>
           <p class="muted" style="font-size:13px">Toutes les étapes avec les données saisies (${st.rf ? 'avec' : 'sans'} traînées). Chaque résultat peut être vérifié à la calculatrice.</p>
           ${Viz.detail(st, Calc.calculer(st))}</div>
