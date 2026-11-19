@@ -141,7 +141,36 @@ Tâches :
 - Sans Internet, le site affiche les hypothèses et le dit.
 
 Critères de fin : voir la spec, phase 4.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 4 (écrit le 19/11/2026 sur `9bdd626`)
+
+Projet Supabase : `https://khbtbhvbdievsdxldluq.supabase.co`, clé publique `sb_publishable_NPjp…`. La clé secrète et le mot de passe de la base ne vont jamais dans le dépôt.
+
+1. **Base (`docs/supabase.sql`, nouveau).** But : trois tables et deux fonctions, à coller une fois dans l'éditeur SQL de Supabase.
+   - `saisies` : id, groupe (`kelley` ou `hec`), prénom, initiale, trajet (JSON : itinéraire, modes des étapes, classe, aller-retour), masquée (oui/non), date. Une seule ligne par groupe + prénom + initiale, sans tenir compte des majuscules (P7).
+   - `codes_groupes` : le code de chaque groupe (P6). Les vrais codes sont saisis par Théo dans Supabase, jamais écrits dans le dépôt (le dépôt est public).
+   - `pole` : les adresses email des membres du pôle.
+   - Fonction `enregistrer_saisie(groupe, prénom, initiale, code, trajet)` : vérifie le code, puis ajoute la saisie ou remplace l'ancienne du même étudiant. C'est la seule porte d'écriture du public.
+   - Fonction `lire_saisies()` : rend groupe + trajet des saisies non masquées, **sans prénom ni initiale** (P5).
+   - Règles d'accès (RLS) : le public n'a aucun droit direct sur les tables (ni lecture, ni écriture) ; un compte connecté dont l'email est dans `pole` lit tout et peut masquer.
+2. **À faire par Théo dans Supabase** (Claude ne crée pas de compte et ne tape aucun mot de passe) : coller le SQL (ou laisser Claude le coller dans son Chrome) ; choisir les deux codes de groupe ; créer son compte pôle (Authentication → Add user) et mettre son email dans `pole` ; couper les inscriptions libres (« Allow new users to sign up » sur off), sinon n'importe qui pourrait se créer un compte.
+3. **Lien avec la base (`js/partage.js`, nouveau).** `Partage.charger()` lit `lire_saisies()` (abandon après 6 s) ; `Partage.enregistrer(…)` appelle `enregistrer_saisie` ; connexion et déconnexion du pôle ; `Partage.toutes()` et `Partage.masquer(id, oui/non)` pour le pôle. Si la base ne répond pas : `Partage.etat = 'hors-ligne'` et le bilan reste celui des hypothèses.
+4. **Calcul (`js/calc.js`).** But : bilan = saisies + hypothèse pour les autres. Pour chaque groupe avec n saisies : chaque saisie devient un vol de 1 passager (source « Saisie étudiant »), et n passagers sont retirés des vols en hypothèse (le plus gros d'abord, jamais sous 0). Les trajets sur place restent ceux du groupe. Plus de saisies que de participants → message d'erreur. Rien n'est écrit dans les données du navigateur. Test : sans saisie → 172,4 t / 95,3 t ; 1 saisie Kelley `MRS-CDG-ATL-IND` éco A/R → « 1 saisi + 35 en hypothèse », total identique ; 1 saisie Kelley `MRS-CDG-ATL-IND` avec Marseille → Paris en train → total en baisse du même écart que le levier sur 1 personne.
+5. **Affichage (`js/app.js`).**
+   - Synthèse : une ligne « Trajets saisis par les étudiants : 1 sur 70 (69 en hypothèse) », ou « Base en ligne injoignable : bilan calculé avec les hypothèses » hors ligne.
+   - Saisie : bloc « Saisies des étudiants (pôle) » : connexion par email et mot de passe ; une fois connecté, liste prénom + initiale, groupe, itinéraire, date, bouton « Masquer / Réafficher ».
+   - Import (G1) : choix « Remplacer mes données » ou « Ajouter aux miennes » (les vols, trajets et locations du fichier s'ajoutent à ceux du groupe de même identifiant).
+6. **`index.html`.** `js/partage.js` avant `calc.js` (appels directs à la base avec `fetch`, sans bibliothèque Supabase : une dépendance de moins). Tous les `?v=` passent à `2026-11-19q`.
+
+Contrôles :
+- script de recalcul (dossier temporaire) sur les tests du point 4 ;
+- avec la clé publique, appeler directement la base : lire `saisies` → refusé ; `lire_saisies()` → aucun champ prénom ; écrire dans `saisies` sans passer par la fonction → refusé ; mauvais code → refusé ;
+- une saisie de test « Test T » envoyée, visible dans le bilan, puis supprimée par Théo ;
+- base coupée (fausse adresse) → message hors ligne, total des hypothèses ;
+- aperçu à 375 px et à l'ordinateur, 6 onglets en avant et en arrière, console sans erreur.
+
+Prévenir Martin (nouveau service, accueil à venir) et Adrien (`calc.js`).
+Message de commit : « Phase 4 de l'audit : base partagée des trajets étudiants ».
 ### STOP — fin de la phase 4
 
 ## Phase 5 — Accueil « Mon voyage » et « Saisir mon trajet »

@@ -113,7 +113,7 @@
   // =====================================================================
   function view(ctx) {
     const st = ctx.st();
-    const r = Calc.calculer(st);
+    const r = Calc.calculer(st, { saisies: [] });
     return `
       <div class="head"><div><div class="page-title">Collecte des données · Adrien</div><h1 style="font-size:28px">Itinéraires et voitures de location</h1></div></div>
       <div class="note" style="--i:0">Tapez le <b>nom d'une ville</b> (ex. « Atlanta », « Paris », « Montréal ») : le site propose ses aéroports. Ajoutez une ligne par escale. Pour chaque segment, choisissez le <b>moyen de transport</b> : par exemple Atlanta → Indianapolis en <b>🚌 bus</b> plutôt qu'en avion. Les distances et les émissions se recalculent tout de suite, et tout est repris dans les onglets Saisie, Synthèse et Rapport.</div>
@@ -326,7 +326,7 @@
 
   // Mise à jour des chiffres d'une fiche sans tout redessiner (le curseur reste dans la case).
   function refreshLoc(view, ctx) {
-    const st = ctx.st(), r = Calc.calculer(st);
+    const st = ctx.st(), r = Calc.calculer(st, { saisies: [] });
     st.groupes.forEach((g, gi) => {
       const rg = r.groupes[gi];
       view.querySelectorAll(`.tj-lc [data-lf="label"][data-g="${gi}"]`).forEach(inp => {

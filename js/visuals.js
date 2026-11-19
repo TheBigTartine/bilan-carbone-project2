@@ -40,8 +40,8 @@
     const add = (k, o) => { const e = segs.get(k); if (e) e.kg += o.kg; else segs.set(k, o); pts.set(o.a.code, o.a); pts.set(o.b.code, o.b); };
     st.groupes.forEach((g, gi) => {
       if (opts.groupe != null && gi !== opts.groupe) return;
-      g.vols.forEach((v, vi) => {
-        const x = r.groupes[gi].vols[vi]; if (!x.legs || !x.legs.length) return;
+      r.groupes[gi].vols.forEach((x, vi) => {
+        const v = x.vol; if (!x.legs || !x.legs.length) return;
         const coef = (F.classes[v.classe] || F.classes.eco).coef, n = (+v.pax || 0) * (v.ar ? 2 : 1);
         const kgAir = l => l.d * (st.rf ? l.tranche.avec : l.tranche.sans) * coef * n;
         if (!opts.scen) {
@@ -155,8 +155,8 @@
     const steps = [];
     const ter = g.terrestres.map((x, i) => ({ type: modeIcon(x.mode), label: x.label, sub: `${F.terrestre[x.mode]?.label || ''} · ${x.km} km${x.ar ? ' × 2' : ''}`, kg: R.terr[i] / n }));
     if (ter.length) steps.push(ter[0]);
-    g.vols.forEach((v, vi) => {
-      const x = R.vols[vi], coef = (F.classes[v.classe] || F.classes.eco).coef;
+    R.vols.forEach((x, vi) => {
+      const v = x.vol, coef = (F.classes[v.classe] || F.classes.eco).coef;
       const it = Calc.itineraire(v.route, st); if (it.err) return;
       // Dans l'ordre de l'itinéraire : vols et étapes faites au sol (onglet Trajets).
       it.legs.forEach(l => {
@@ -185,7 +185,7 @@
   function fiabilite(st, r) {
     let hyp = 0, ok = 0, nh = 0, nok = 0;
     st.groupes.forEach((g, gi) => {
-      g.vols.forEach((v, i) => { const x = r.groupes[gi].vols[i], kg = x.air + (x.sol || 0); if (/hypoth/i.test(v.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
+      r.groupes[gi].vols.forEach(x => { const v = x.vol, kg = x.air + (x.sol || 0); if (/hypoth/i.test(v.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
       g.terrestres.forEach((x, i) => { const kg = r.groupes[gi].terr[i]; if (/hypoth/i.test(x.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
       (g.locations || []).forEach((l, i) => { const kg = (r.groupes[gi].loc[i] || {}).kg || 0; if (/hypoth/i.test(l.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
     });
@@ -410,8 +410,8 @@
     const rf = st.rf ? 'avec' : 'sans';
     return st.groupes.map((g, gi) => {
       const R = r.groupes[gi];
-      const volRows = g.vols.map((v, vi) => {
-        const x = R.vols[vi];
+      const volRows = R.vols.map((x, vi) => {
+        const v = x.vol;
         if (x.err) return `<tr><td colspan="9" class="down">${esc(v.label)} : ${esc(x.err)}</td></tr>`;
         const coef = (F.classes[v.classe] || F.classes.eco).coef, tr = v.ar ? 2 : 1;
         return x.legs.map(l => {
@@ -431,7 +431,7 @@
       }).join('') + R.vols.map((x, vi) => (x.solLegs || []).map(l => {
         // Segment au sol saisi dans un itinéraire (onglet Trajets)
         const p = x.pax, tr = x.trajets, n = F.terrestre[l.mode]?.parVehicule ? `${Math.ceil(p / 4)} véh.` : `${p} pers.`;
-        return `<tr><td>${esc(g.vols[vi].label)} : ${l.from.code} → ${l.to.code}</td><td>${esc(l.label)}</td><td class="r num">${nf(l.f, 4)}</td>
+        return `<tr><td>${esc(x.vol.label)} : ${l.from.code} → ${l.to.code}</td><td>${esc(l.label)}</td><td class="r num">${nf(l.f, 4)}</td>
           <td class="calc num">${nf(l.kmSol, 0)} km × ${tr} × ${n} × ${nf(l.f, 4)}</td><td class="r num"><b>${nf(l.kg, 1)}</b></td></tr>`;
       }).join('')).join('') + (g.locations || []).map((l, i) => {
         const x = R.loc[i]; if (!x || !x.kg) return '';

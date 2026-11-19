@@ -85,6 +85,10 @@
       <div class="kpi-value num" data-count="${t(kg)}">${t(kg)} <small>tCO2e</small></div>
       <div class="kpi-sub">${sub}</div></div>`;
   const hypoNote = r => r.hypotheses ? `<div class="note warn mt" style="--i:2"><b>${r.hypotheses} ligne${r.hypotheses > 1 ? 's' : ''} encore en hypothèse.</b> Les résultats sont provisoires tant que les données des responsables des Study Tours ne sont pas saisies (onglet <a href="#/saisie">Saisie</a>, colonne « Source »).${Viz.fiabilite(st, r)}</div>` : '';
+  // Trajets saisis par les étudiants (js/partage.js) ou base injoignable.
+  const partNote = r => !window.Partage ? '' : Partage.etat === 'hors-ligne'
+    ? `<div class="note warn mt">Base en ligne injoignable : bilan calculé avec les hypothèses seulement.</div>`
+    : Partage.etat === 'ok' ? `<div class="note mt">Trajets saisis par les étudiants : <b class="num">${r.saisis}</b> sur ${r.participants} (${Math.max(0, r.participants - r.saisis)} en hypothèse).</div>` : '';
   const errNote = r => r.erreurs.length ? `<div class="note warn mt">${r.erreurs.map(esc).join('<br>')}</div>` : '';
 
   // =====================================================================
@@ -129,7 +133,7 @@
         </div>
         <div class="card map-card" style="--i:5"><div class="map-head"><h2 class="section">Carte des trajets</h2><span class="muted sub">Plus le trait est épais, plus le segment émet</span></div>${Viz.carte(st, r, { H: 660 })}</div>
       </div>
-      ${hypoNote(r)}${errNote(r)}
+      ${partNote(r)}${hypoNote(r)}${errNote(r)}
       <div class="grid grid-main mt">
         <div class="card" style="--i:6"><h2 class="section">D'où viennent les tonnes ?</h2><p class="muted sub">Du total vers chaque groupe, puis vers chaque poste. Survoler un flux pour le chiffre.</p>${Viz.flux(r)}</div>
         <div class="card" style="--i:7"><h2 class="section">Répartition par poste et par groupe</h2><div class="chart-box"><canvas id="c-postes"></canvas></div></div>
@@ -179,13 +183,14 @@
   }
 
   function vSaisie() {
-    const r = Calc.calculer(st);
+    const r = Calc.calculer(st, { saisies: [] });
     const perso = Object.entries(st.aeroportsPerso || {});
     return `
       <div class="head"><div><div class="page-title">Collecte des données</div><h1 style="font-size:28px">Tableau des déplacements</h1></div>
         <div class="actions no-print">
           <button class="btn sm" data-act="export-json">Exporter (.json)</button>
-          <label class="btn sm" style="cursor:pointer">Importer (.json)<input type="file" accept=".json,application/json" id="import" hidden></label>
+          <label class="btn sm" style="cursor:pointer">Importer et remplacer (.json)<input type="file" accept=".json,application/json" id="import" hidden></label>
+          <label class="btn sm" style="cursor:pointer">Importer et ajouter (.json)<input type="file" accept=".json,application/json" id="import-ajout" hidden></label>
           <button class="btn sm" data-act="export-csv">Tableau Excel (.csv)</button>
           <button class="btn sm ghost" data-act="reset">Revenir aux hypothèses</button>
         </div></div>
@@ -233,6 +238,7 @@
         </table></div>
         <button class="btn sm mt no-print" data-add="${gi}-terrestres">+ Ajouter un trajet</button>
       </div>`).join('')}
+      ${window.Partage ? `<div class="card mt2" style="--i:3" id="pole">${vPole()}</div>` : ''}
       <div class="card mt2" style="--i:4">
         <h3>Ajouter un aéroport manquant</h3>
         <p class="muted" style="font-size:12.5px;margin:4px 0 10px">${Object.keys(window.AEROPORTS).length} aéroports sont déjà connus (${Object.keys(window.AEROPORTS).join(', ')}). Coordonnées en degrés décimaux, à copier depuis Wikipédia.</p>
@@ -241,8 +247,39 @@
       </div>`;
   }
 
+  // Bloc « Saisies des étudiants » : réservé au pôle (compte créé dans Supabase).
+  function vPole() {
+    if (!Partage.connecte()) return `
+      <h3>Saisies des étudiants (pôle)</h3>
+      <p class="muted sub" style="margin:2px 0 10px">Réservé au pôle : voir qui a saisi son trajet et masquer une fausse saisie.</p>
+      <form class="actions" id="pole-form"><input class="field" type="email" id="pole-email" placeholder="Email" autocomplete="username" required style="width:220px">
+        <input class="field" type="password" id="pole-mdp" placeholder="Mot de passe" autocomplete="current-password" required style="width:180px">
+        <button class="btn sm primary" type="submit">Se connecter</button></form>`;
+    return `
+      <div class="group-head"><h3 style="margin:0">Saisies des étudiants (pôle)</h3><span class="muted" style="margin-left:auto">${esc(Partage.session.email)}</span><button class="btn sm ghost" data-act="pole-sortir">Se déconnecter</button></div>
+      <div id="pole-liste" class="mt"><p class="muted">Chargement…</p></div>`;
+  }
+  function listePole() {
+    const box = $('#pole-liste'); if (!box) return;
+    const nomGroupe = id => (st.groupes.find(g => g.id === id) || { nom: id }).nom.split(' (')[0];
+    Partage.toutes().then(rows => {
+      if (!rows.length) { box.innerHTML = '<p class="muted">Aucune saisie pour l’instant.</p>'; return; }
+      box.innerHTML = `<div class="table-wrap"><table>
+        <thead><tr><th>Étudiant</th><th>Groupe</th><th>Itinéraire</th><th>Classe</th><th>A/R</th><th>Date</th><th></th></tr></thead>
+        <tbody>${rows.map(x => `<tr${x.masquee ? ' class="faint"' : ''}>
+          <td>${esc(x.prenom)} ${esc(x.initiale)}.</td><td>${esc(nomGroupe(x.groupe))}</td><td><code>${esc(x.trajet?.route || '')}</code></td>
+          <td>${esc(F.classes[x.trajet?.classe]?.label || 'Économique')}</td><td>${x.trajet?.ar === false ? 'non' : 'oui'}</td>
+          <td class="num">${new Date(x.cree).toLocaleDateString('fr-FR')}</td>
+          <td><button class="btn sm${x.masquee ? '' : ' ghost'}" data-masquer="${esc(x.id)}" data-oui="${x.masquee ? '' : '1'}">${x.masquee ? 'Réafficher' : 'Masquer'}</button></td></tr>`).join('')}</tbody>
+      </table></div>`;
+    }).catch(e => {
+      if (!Partage.connecte()) { const p = $('#pole'); if (p) p.innerHTML = vPole(); toast('Session expirée : se reconnecter'); return; }
+      box.innerHTML = `<p class="down">Lecture impossible : ${esc(e.message)}. Ce compte est-il dans la liste du pôle ?</p>`;
+    });
+  }
+
   function refreshSaisie() {
-    const r = Calc.calculer(st);
+    const r = Calc.calculer(st, { saisies: [] });
     r.groupes.forEach((g, gi) => {
       const tot = $(`#tot-${gi}`); if (tot) tot.textContent = `${t(g.total)} tCO2e`;
       g.vols.forEach((v, i) => { const o = $(`#out-${gi}-vols-${i}`); if (o) o.textContent = t(v.air + (v.sol || 0)); const l = $(`#legs-${gi}-${i}`); if (l) l.innerHTML = legsInfo(st.groupes[gi].vols[i]); });
@@ -252,7 +289,7 @@
     // La mini-carte se redessine un instant après la frappe (pas à chaque lettre).
     clearTimeout(refreshSaisie._m);
     refreshSaisie._m = setTimeout(() => {
-      const r2 = Calc.calculer(st);
+      const r2 = Calc.calculer(st, { saisies: [] });
       st.groupes.forEach((g, gi) => {
         const box = $(`#mini-${gi}`); if (!box) return;
         box.innerHTML = Viz.carte(st, r2, { groupe: gi, H: 430, noLegend: true });
@@ -299,13 +336,45 @@
         if (confirm('Remplacer toutes les données saisies par les hypothèses de départ ?')) { st = { ...clone(window.HYPOTHESES), prixMaj: 1 }; save(); render(); toast('Hypothèses restaurées'); }
       } else if (b.dataset.act === 'export-json') exportJson();
       else if (b.dataset.act === 'export-csv') exportCsv();
+      else if (b.dataset.act === 'pole-sortir') { Partage.deconnecter(); $('#pole').innerHTML = vPole(); }
+      else if (b.dataset.masquer) {
+        b.disabled = true;
+        Partage.masquer(b.dataset.masquer, !!b.dataset.oui)
+          .then(() => Partage.charger()).then(() => { listePole(); toast(b.dataset.oui ? 'Saisie masquée' : 'Saisie réaffichée'); })
+          .catch(err => { b.disabled = false; toast(err.message); });
+      }
     });
+    view.addEventListener('submit', e => {
+      if (e.target.id !== 'pole-form') return;
+      e.preventDefault();
+      const btn = $('button[type="submit"]', e.target); btn.disabled = true;
+      Partage.connecter($('#pole-email').value.trim(), $('#pole-mdp').value)
+        .then(() => { $('#pole').innerHTML = vPole(); listePole(); })
+        .catch(() => { btn.disabled = false; toast('Connexion refusée : email ou mot de passe incorrect'); });
+    });
+    if (window.Partage && Partage.connecte()) listePole();
     $('#import', view)?.addEventListener('change', e => {
       const f = e.target.files[0]; if (!f) return;
       f.text().then(txt => {
         const d = JSON.parse(txt);
         if (!Array.isArray(d.groupes)) throw new Error();
         st = { ...clone(window.HYPOTHESES), ...d }; fixLocations(); save(); render(); toast('Données importées');
+      }).catch(() => toast('Fichier non reconnu'));
+    });
+    // Import qui ajoute : les vols, trajets et locations du fichier s'ajoutent au groupe de même identifiant.
+    $('#import-ajout', view)?.addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      f.text().then(txt => {
+        const d = JSON.parse(txt);
+        if (!Array.isArray(d.groupes)) throw new Error();
+        let n = 0;
+        d.groupes.forEach(gf => {
+          const g = st.groupes.find(x => x.id === gf.id);
+          if (!g) { st.groupes.push({ locations: [], ...clone(gf) }); n++; return; }
+          for (const k of ['vols', 'terrestres', 'locations']) if (Array.isArray(gf[k])) { g[k] = (g[k] || []).concat(clone(gf[k])); n += gf[k].length; }
+        });
+        st.aeroportsPerso = { ...(d.aeroportsPerso || {}), ...(st.aeroportsPerso || {}) };
+        fixLocations(); save(); render(); toast(`${n} ligne${n > 1 ? 's' : ''} ajoutée${n > 1 ? 's' : ''}`);
       }).catch(() => toast('Fichier non reconnu'));
     });
   }
@@ -322,7 +391,7 @@
     const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const rows = [['Groupe', 'Type', 'Libellé', 'Itinéraire / mode', 'Segments', 'Distance par trajet (km)', 'Passagers', 'Classe', 'Aller-retour', 'Source', `kgCO2e (${st.rf ? 'avec' : 'sans'} traînées)`]];
     st.groupes.forEach((g, gi) => {
-      g.vols.forEach((v, i) => { const x = r.groupes[gi].vols[i]; rows.push([g.nom, 'Vol', v.label, v.route, x.legs.length, nf(x.legs.reduce((s, l) => s + l.d, 0), 0), v.pax, F.classes[v.classe]?.label, v.ar ? 'oui' : 'non', v.source, nf(x.air, 1)]); });
+      r.groupes[gi].vols.forEach(x => { const v = x.vol; rows.push([g.nom, 'Vol', v.label, v.route, x.legs.length, nf(x.legs.reduce((s, l) => s + l.d, 0), 0), v.pax, F.classes[v.classe]?.label, v.ar ? 'oui' : 'non', v.source, nf(x.air, 1)]); });
       g.terrestres.forEach((x, i) => rows.push([g.nom, 'Terrestre', x.label, F.terrestre[x.mode]?.label, '', x.km, x.pax, '', x.ar ? 'oui' : 'non', x.source, nf(r.groupes[gi].terr[i], 1)]));
       (g.locations || []).forEach((l, i) => { const x = r.groupes[gi].loc[i]; rows.push([g.nom, 'Location voiture', [l.label, l.de && l.a ? `${l.de} → ${l.a}` : ''].filter(Boolean).join(' : '), `${x.modele?.label || ''} × ${l.nv}`, '', l.km, x.personnes, '', l.ar ? 'oui' : 'non', l.source, nf(x.kg, 1)]); });
     });
@@ -903,4 +972,5 @@
   });
   render();
   splash();
+  if (window.Partage) Partage.charger().then(() => { if (!['saisie', 'trajets'].includes(route())) render(true); });
 })();

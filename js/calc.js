@@ -189,13 +189,37 @@
       nox: kmVeh * (n.nox || 0) / 1000, pm: kmVeh * (n.pm || 0) / 1000, co: kmVeh * (n.co || 0) / 1000 };
   }
 
+  // Bilan = trajets saisis par les étudiants + hypothèse pour les autres (js/partage.js).
+  // Chaque saisie devient un vol de 1 passager, ajouté APRÈS les vols du groupe (les numéros de lignes
+  // de l'onglet Saisie ne bougent pas) ; autant de passagers sont retirés des vols en hypothèse,
+  // le plus gros d'abord, jamais sous 0. Les données du navigateur ne sont pas modifiées.
+  function avecSaisies(g, saisies) {
+    const miennes = saisies.filter(s => s.groupe === g.id);
+    if (!miennes.length) return { vols: g.vols, saisis: 0, enTrop: 0 };
+    const vols = g.vols.map(v => ({ ...v }));
+    let reste = miennes.length;
+    vols.filter(v => /hypoth/i.test(v.source || '')).sort((a, b) => (+b.pax || 0) - (+a.pax || 0)).forEach(v => {
+      const retire = Math.min(reste, Math.max(0, +v.pax || 0)); v.pax = (+v.pax || 0) - retire; reste -= retire;
+    });
+    for (const s of miennes) {
+      const t = s.trajet;
+      vols.push({ label: 'Trajet saisi par un étudiant', route: String(t.route || ''), legModes: Array.isArray(t.legModes) ? t.legModes : [],
+        pax: 1, classe: F.classes[t.classe] ? t.classe : 'eco', ar: t.ar !== false, source: 'Saisie étudiant', saisie: true });
+    }
+    return { vols, saisis: miennes.length, enTrop: reste };
+  }
+
   function calculer(st, extra = {}) {
     const opts = { rf: st.rf, ...extra };
-    const res = { groupes: [], total: 0, air: 0, corr: 0, terrestre: 0, train: 0, participants: 0, erreurs: [], hypotheses: 0 };
+    const saisies = opts.saisies || (window.Partage && Partage.saisies) || [];
+    const res = { groupes: [], total: 0, air: 0, corr: 0, terrestre: 0, train: 0, participants: 0, erreurs: [], hypotheses: 0, saisis: 0 };
     for (const g of st.groupes) {
       const r = { id: g.id, nom: g.nom, participants: +g.participants || 0, air: 0, corr: 0, terrestre: 0, train: 0, vols: [], terr: [] };
-      for (const v of g.vols) {
-        const x = calcVol(v, st, opts);
+      const fus = avecSaisies(g, saisies);
+      r.saisis = fus.saisis; res.saisis += fus.saisis;
+      if (fus.enTrop) res.erreurs.push(`${g.nom} : ${fus.saisis} trajets saisis par les étudiants, plus que les passagers prévus en hypothèse (vérifier l'effectif et les vols dans l'onglet Saisie)`);
+      for (const v of fus.vols) {
+        const x = calcVol(v, st, opts); x.vol = v; // le vol réellement calculé (avec les saisies des étudiants)
         if (x.err) res.erreurs.push(`${g.nom} — ${v.label || 'vol'} : ${x.err}`);
         r.vols.push(x); r.air += x.air; r.train += x.train; r.corr += x.corr;
         r.terrestre += x.sol || 0; // segments en autocar / train / voiture saisis dans l'itinéraire
