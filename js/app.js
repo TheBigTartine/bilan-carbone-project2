@@ -16,6 +16,8 @@
   st = { ...clone(window.HYPOTHESES), ...st, scenarios: { ...window.HYPOTHESES.scenarios, ...(st.scenarios || {}) } };
   const fixLocations = () => st.groupes.forEach(g => { if (!Array.isArray(g.locations)) g.locations = []; }); // anciennes sauvegardes
   fixLocations();
+  // Ancienne sauvegarde avec l'ancien prix par défaut (30 €) : passage au nouveau défaut, une seule fois.
+  if (!st.prixMaj) { if (st.prixTonne === 30) st.prixTonne = window.HYPOTHESES.prixTonne; st.prixMaj = 1; }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
 
   // ---------- Formats ----------
@@ -211,7 +213,7 @@
             <td><select data-g="${gi}" data-k="vols" data-i="${i}" data-f="classe">${classeOptions(v.classe)}</select></td>
             <td><input type="checkbox" class="check" data-g="${gi}" data-k="vols" data-i="${i}" data-f="ar" ${v.ar ? 'checked' : ''}></td>
             <td>${sourceInput(gi, 'vols', i, v.source)}</td>
-            <td class="r num" id="out-${gi}-vols-${i}">${t(r.groupes[gi].vols[i].air)}</td>
+            <td class="r num" id="out-${gi}-vols-${i}">${t(r.groupes[gi].vols[i].air + (r.groupes[gi].vols[i].sol || 0))}</td>
             <td><button class="icon-x" data-del="${gi}-vols-${i}" aria-label="Supprimer">${X}</button></td></tr>`).join('')}</tbody>
         </table></div>
         <button class="btn sm mt no-print" data-add="${gi}-vols">+ Ajouter un vol</button>
@@ -243,7 +245,7 @@
     const r = Calc.calculer(st);
     r.groupes.forEach((g, gi) => {
       const tot = $(`#tot-${gi}`); if (tot) tot.textContent = `${t(g.total)} tCO2e`;
-      g.vols.forEach((v, i) => { const o = $(`#out-${gi}-vols-${i}`); if (o) o.textContent = t(v.air); const l = $(`#legs-${gi}-${i}`); if (l) l.innerHTML = legsInfo(st.groupes[gi].vols[i]); });
+      g.vols.forEach((v, i) => { const o = $(`#out-${gi}-vols-${i}`); if (o) o.textContent = t(v.air + (v.sol || 0)); const l = $(`#legs-${gi}-${i}`); if (l) l.innerHTML = legsInfo(st.groupes[gi].vols[i]); });
       g.terr.forEach((kg, i) => { const o = $(`#out-${gi}-terrestres-${i}`); if (o) o.textContent = t(kg, 2); });
       const trip = $(`#trip-${gi}`); if (trip) trip.innerHTML = Viz.parcours(st, r, gi);
     });
@@ -294,7 +296,7 @@
         st.aeroportsPerso[code] = [$('#ap-nom').value.trim() || code, lat, lon, $('#ap-pays').value.trim().toUpperCase()];
         save(); render(); toast(`${code} ajouté`);
       } else if (b.dataset.act === 'reset') {
-        if (confirm('Remplacer toutes les données saisies par les hypothèses de départ ?')) { st = clone(window.HYPOTHESES); save(); render(); toast('Hypothèses restaurées'); }
+        if (confirm('Remplacer toutes les données saisies par les hypothèses de départ ?')) { st = { ...clone(window.HYPOTHESES), prixMaj: 1 }; save(); render(); toast('Hypothèses restaurées'); }
       } else if (b.dataset.act === 'export-json') exportJson();
       else if (b.dataset.act === 'export-csv') exportCsv();
     });
@@ -347,7 +349,7 @@
   };
   // Ordre = ordre d'application (cascade) : d'abord le TGV, puis l'itinéraire est optimisé à partir de Paris.
   const SCEN = [
-    { id: 'trainFr', titre: 'TGV jusqu’à l’aéroport Paris-CDG', court: 'TGV', icone: 'train', couleur: 'var(--c-ground)',
+    { id: 'trainFr', titre: 'TGV au lieu des vols en France', court: 'TGV', icone: 'train', couleur: 'var(--c-ground)',
       qui: 'les responsables des Study Tours, à la réservation (billet unique « Train + Air » avec Air France)' },
     { id: 'itineraire', titre: 'Meilleur itinéraire existant', court: 'Itinéraire', icone: 'route', couleur: 'var(--c-corr)',
       qui: 'les responsables des Study Tours, au choix de la compagnie et de l’escale' },
@@ -388,7 +390,8 @@
         if (train.length || avant.join() !== apres.join()) {
           lignes.push(`<b>${nomCourt(gr)}</b> : ${avant.join(' → ')} devient ${[...train, apres.join(' → ')].filter(Boolean).join(', puis ')}`);
           if (train.length) {
-            b.trainLegs.forEach(l => phrases.push(`${esc(ville(l.from))} → ${esc(ville(l.to))} en TGV direct (≈ 4 h) au lieu de l’avion`));
+            // Durée connue seulement pour la ligne documentée dans js/leviers.js (Marseille → Paris-CDG).
+            b.trainLegs.forEach(l => phrases.push(`${esc(ville(l.from))} → ${esc(ville(l.to))} en TGV ${[l.from.code, l.to.code].sort().join() === 'CDG,MRS' ? 'direct (≈ 4 h)' : '(durée à vérifier)'} au lieu de l’avion`));
             if (LV.tgv.source) sources.add(`TGV : ${esc(LV.tgv.texte || '')} Source : ${esc(LV.tgv.source)}`);
           }
           if (s.id === 'itineraire') {
@@ -703,6 +706,7 @@
         <p class="q">Quel budget serait nécessaire pour financer une contribution correspondant aux émissions calculées ?</p>
         <p>Selon le prix retenu par tonne (le pôle compensation doit fixer et justifier ce prix) :</p>
         <table style="max-width:560px"><thead><tr><th>Repère de prix par tonne</th><th class="r">Budget pour ${t(r.total)} t (${st.rf ? 'avec' : 'sans'} traînées)</th></tr></thead><tbody>${reperes.map(x => `<tr><td>${x.prix} € / tCO2e · ${esc(x.label)}</td><td class="r num">${eur(r.total / 1000 * x.prix)}</td></tr>`).join('')}</tbody></table>
+        <p style="font-size:13px">Ce budget porte sur le bilan entier, sans levier de réduction. L'onglet Scénarios le calcule sur ce qui reste après les leviers cochés.</p>
         <p class="faint" style="font-size:12px">Sources : ${reperes.map(x => `${esc(x.label)} : ${esc(x.source)}`).join(' ; ')}.</p>
 
         <h2>3. Méthode de calcul</h2>
@@ -711,7 +715,7 @@
         <h2>4. Limites du calcul</h2>
         <div class="card" style="margin-bottom:12px"><h3 style="margin-bottom:10px">Sensibilité du résultat aux hypothèses</h3>${Viz.sensibilite(st)}</div>
         <ul>
-          <li>Les facteurs sont ceux de la Base Empreinte de l'ADEME (${st.rf ? 'avec' : 'sans'} traînées), appliqués par segment de vol selon la distance. Ils ne tiennent compte ni du type d'avion, ni du taux de remplissage réel, ni de la compagnie.</li>
+          <li>Les facteurs sont ceux de la Base Empreinte de l'ADEME (${st.rf ? 'avec' : 'sans'} traînées), appliqués par segment de vol selon la distance. La taille d'avion est choisie selon la distance, pas selon l'avion réellement utilisé, et les facteurs ne tiennent compte ni du taux de remplissage réel, ni de la compagnie.</li>
           <li>Les distances sont orthodromiques + ${F.correctionKm} km : elles approchent la trajectoire réelle sans la reproduire.</li>
           <li>Périmètre principal : vols et déplacements terrestres. Hébergement, restauration et achats sur place sont exclus de ce bilan (analyse complémentaire possible).</li>
           <li>Les coefficients par classe viennent du DEFRA, une autre source que l'ADEME. Ils s'appliquent au bilan principal, mais seulement aux passagers hors classe économique.</li>
@@ -754,6 +758,12 @@
         <div class="card" style="--i:3"><h2 class="section">Classes de voyage</h2>
           <p>L'ADEME ne distingue pas les classes : son facteur vaut pour un siège moyen. Les coefficients suivants viennent du DEFRA (gouvernement britannique, facteurs de conversion 2025, vols long-courriers) : ils reflètent la place occupée dans l'avion. Chaque coefficient est le rapport entre le facteur DEFRA de la classe et celui du siège moyen. La classe économique reste à 1, c'est-à-dire au facteur ADEME. Le coefficient s'applique au bilan principal : tant que tout le monde voyage en classe économique, il ne change rien.</p>
           <ul>${Object.values(F.classes).map(c => `<li>${c.label} : × ${nf(c.coef, 2)}</li>`).join('')}</ul></div></div></div>
+        <div class="card" style="--i:3"><h2 class="section">Trajets au sol et voitures de location</h2>
+          <p><b>Une étape d'itinéraire faite au sol</b> (onglet Trajets : bus, train ou voiture au lieu de l'avion). La distance est le vol d'oiseau multiplié par un détour : × ${nf(Calc.MODES_SOL.train, 1)} en train, × ${nf(Calc.MODES_SOL.autocar, 1)} sur la route <span class="muted">(hypothèses du pôle, sans source officielle)</span>. Ensuite : <code>km × trajets × passagers × facteur</code>, ou pour une voiture <code>km × trajets × nombre de voitures × facteur</code>, avec 4 personnes par voiture <span class="muted">(hypothèse)</span>.</p>
+          <p class="mt">Le facteur du train dépend du pays : TGV entre deux villes françaises (ADEME 43256), Amtrak en Amérique du Nord (EPA), Intercités ailleurs en Europe (ADEME 43272). La traversée de l'Atlantique et le trajet vers l'Islande se font toujours en avion.</p>
+          <p class="mt"><b>Une voiture de location</b> : <code>carburant = km × trajets × voitures × consommation / 100</code>, puis <code>kgCO2e = carburant × facteur du carburant + km parcourus × ${nf(VEHICULES.fabricationKm, 3)}</code> pour la fabrication du véhicule (ADEME 43791). La consommation est celle annoncée par l'EPA pour chaque modèle (fueleconomy.gov). Quand on choisit deux villes, la distance est le vol d'oiseau × ${nf(VEHICULES.detourRoute, 1)} <span class="muted">(hypothèse)</span>.</p>
+          <ul class="mt">${Object.values(VEHICULES.energies).map(e => `<li>${esc(e.label)} : ${nf(e.f, 4)} kgCO2e/${e.unite} · <span class="muted">${esc(e.source)}</span></li>`).join('')}</ul>
+          <p class="mt">Les polluants affichés pour les locations (NOx, particules, CO) sont les limites de la norme du véhicule. Ce sont des polluants locaux : ils ne s'ajoutent jamais aux tCO2e.</p></div>
         <div class="card" style="--i:3"><h2 class="section">Quelles hypothèses pèsent le plus ?</h2>
           <p class="muted sub" style="margin:0 0 12px">Écart du bilan quand on change une seule hypothèse à la fois. Les plus grosses barres sont celles à justifier en priorité.</p>
           ${Viz.sensibilite(st)}</div>
@@ -772,7 +782,7 @@
           <li>Le train en Amérique du Nord vient de l'EPA (agence américaine de l'environnement), car l'ADEME n'a pas de facteur pour ce pays. L'EPA ne compte que les émissions du train, pas la production du carburant : ce facteur est un peu sous-estimé par rapport à ceux de l'ADEME.</li>
           <li>La voiture et le taxi utilisent le facteur d'une voiture moyenne française. Une voiture américaine consomme en général plus, et un taxi roule aussi à vide entre deux clients : ces trajets sont un peu sous-estimés.</li>
           <li>Le périmètre se limite aux déplacements : hébergement, repas et achats sur place sont exclus.</li></ul></div>
-        <div class="note" style="--i:5"><b>Sources :</b> ${esc(F.version)}, <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a>. Train en Amérique du Nord : <a href="https://www.epa.gov/climateleadership/ghg-emission-factors-hub" target="_blank" rel="noopener">EPA, GHG Emission Factors Hub 2025</a>.</div>
+        <div class="note" style="--i:5"><b>Sources :</b> ${esc(F.version)}, <a href="https://base-empreinte.ademe.fr" target="_blank" rel="noopener">Base Empreinte de l'ADEME</a>. Train en Amérique du Nord : <a href="https://www.epa.gov/climateleadership/ghg-emission-factors-hub" target="_blank" rel="noopener">EPA, GHG Emission Factors Hub 2025</a>. Consommation des voitures de location : <a href="https://www.fueleconomy.gov" target="_blank" rel="noopener">EPA, fueleconomy.gov</a>. Électricité aux États-Unis : <a href="https://www.epa.gov/egrid" target="_blank" rel="noopener">EPA, eGRID</a>.</div>
       </div>`;
   }
 

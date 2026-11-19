@@ -155,11 +155,19 @@
     const steps = [];
     const ter = g.terrestres.map((x, i) => ({ type: modeIcon(x.mode), label: x.label, sub: `${F.terrestre[x.mode]?.label || ''} · ${x.km} km${x.ar ? ' × 2' : ''}`, kg: R.terr[i] / n }));
     if (ter.length) steps.push(ter[0]);
-    g.vols.forEach((v, vi) => (R.vols[vi].legs || []).forEach(l => {
-      const coef = (F.classes[v.classe] || F.classes.eco).coef;
-      steps.push({ type: 'avion', label: `${l.from.code} → ${l.to.code}`, sub: `${nf(l.d, 0)} km${v.ar ? ' × 2' : ''}`, kg: l.d * (st.rf ? l.tranche.avec : l.tranche.sans) * coef * (v.ar ? 2 : 1) * (+v.pax || 0) / n });
-    }));
+    g.vols.forEach((v, vi) => {
+      const x = R.vols[vi], coef = (F.classes[v.classe] || F.classes.eco).coef;
+      const it = Calc.itineraire(v.route, st); if (it.err) return;
+      // Dans l'ordre de l'itinéraire : vols et étapes faites au sol (onglet Trajets).
+      it.legs.forEach(l => {
+        const sol = (x.solLegs || []).find(s => s.from.code === l.from.code && s.to.code === l.to.code);
+        if (sol) steps.push({ type: modeIcon(sol.mode), label: `${l.from.code} → ${l.to.code}`, sub: `${sol.label} · ${nf(sol.kmSol, 0)} km${v.ar ? ' × 2' : ''}`, kg: sol.kg / n });
+        else steps.push({ type: 'avion', label: `${l.from.code} → ${l.to.code}`, sub: `${nf(l.d, 0)} km${v.ar ? ' × 2' : ''}`, kg: l.d * (st.rf ? l.tranche.avec : l.tranche.sans) * coef * (v.ar ? 2 : 1) * (+v.pax || 0) / n });
+      });
+    });
     steps.push(...ter.slice(1));
+    // Voitures de location (onglet Trajets)
+    (g.locations || []).forEach((l, i) => { const x = (R.loc || [])[i]; if (x && x.kg) steps.push({ type: 'voiture', label: l.label || `${l.de} → ${l.a}`, sub: `Location · ${nf(x.km, 0)} km`, kg: x.kg / n }); });
     if (!steps.length) return '';
     const max = Math.max(...steps.map(s => s.kg), 1), tot = steps.reduce((a, s) => a + s.kg, 0);
     return `<div class="trip">${steps.map((s, i) => {
@@ -177,8 +185,9 @@
   function fiabilite(st, r) {
     let hyp = 0, ok = 0, nh = 0, nok = 0;
     st.groupes.forEach((g, gi) => {
-      g.vols.forEach((v, i) => { const kg = r.groupes[gi].vols[i].air; if (/hypoth/i.test(v.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
+      g.vols.forEach((v, i) => { const x = r.groupes[gi].vols[i], kg = x.air + (x.sol || 0); if (/hypoth/i.test(v.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
       g.terrestres.forEach((x, i) => { const kg = r.groupes[gi].terr[i]; if (/hypoth/i.test(x.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
+      (g.locations || []).forEach((l, i) => { const kg = (r.groupes[gi].loc[i] || {}).kg || 0; if (/hypoth/i.test(l.source || '')) { hyp += kg; nh++; } else { ok += kg; nok++; } });
     });
     const tot = hyp + ok || 1, p = ok / tot;
     return `<div class="fiab" data-tip="<b>Fiabilité des données</b><br>${t(ok)} t viennent de données sourcées (${nok} lignes)<br>${t(hyp)} t reposent sur des hypothèses (${nh} lignes)">

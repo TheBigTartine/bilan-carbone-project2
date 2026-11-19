@@ -21,8 +21,9 @@ window.VEHICULES = {
 
   // Facteurs par unité d'énergie (kgCO2e, amont + combustion).
   energies: {
-    essence: { label: 'Essence', unite: 'L', f: 2.80, source: 'ADEME Base Carbone, essence (supercarburant), amont + combustion. À vérifier (Théo)' },
-    gazole: { label: 'Gazole', unite: 'L', f: 3.16, source: 'ADEME Base Carbone, gazole routier, amont + combustion. À vérifier (Théo)' },
+    // Vérifiés par Théo le 19/11/2026 sur data.ademe.fr (Base Empreinte, statut « Valide générique », France continentale).
+    essence: { label: 'Essence', unite: 'L', f: 2.69, source: 'ADEME 25763 (supercarburant sans plomb 95, E10, 98 : amont 0,491 + combustion 2,2)' },
+    gazole: { label: 'Gazole', unite: 'L', f: 3.10, source: 'ADEME 25775 (gazole routier B7 : amont 0,609 + combustion 2,49)' },
     elec_us: { label: 'Électricité (réseau US)', unite: 'kWh', f: 0.373, source: 'EPA eGRID 2022, moyenne nationale (823 lb CO2/MWh), CO2 seul. À vérifier (Théo)' },
     elec_qc: { label: 'Électricité (Québec)', unite: 'kWh', f: 0.0017, source: 'Hydro-Québec / Inventaire canadien des GES, réseau québécois (≈ 1,7 g/kWh). À vérifier (Théo)' }
   },

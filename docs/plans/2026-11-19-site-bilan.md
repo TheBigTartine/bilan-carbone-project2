@@ -103,7 +103,22 @@ Tâches :
 - Le même itinéraire affiche le même chiffre partout.
 
 Critères de fin : voir la spec, phase 3.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 3 (écrit le 19/11/2026 sur `91091e5`)
+
+1. **Limites du Rapport (constat 5).** Modifier `js/app.js` (`vRapport`). But : la limite ne dit plus « ni du type d'avion » ; elle dit, comme la Méthode, que la taille d'avion est choisie selon la distance et non selon l'avion réellement utilisé. Test : plus aucune occurrence de « type d'avion » dans le site.
+2. **Budget Rapport / Scénarios (constat 6).** Modifier `js/app.js`. But : une phrase sous le tableau du Rapport précise que ce budget porte sur le bilan entier, et que l'onglet Scénarios le calcule sur ce qui reste après les leviers cochés. Test : leviers TGV + itinéraire cochés, 35 €/t → Rapport 6 034 €, Scénarios 4 847 €, chaque montant avec sa base écrite à côté.
+3. **Ancien prix de la tonne (constat 7, décision P10).** Modifier `js/app.js` (lecture de la sauvegarde). But : une sauvegarde qui contient l'ancien défaut (30 €) passe au nouveau défaut (35 €), une seule fois ; un prix choisi autrement n'est pas touché. Test : sauvegarde à 30 € → 35 € et repère « Label Bas-Carbone » coché ; sauvegarde à 50 € → reste 50 €.
+4. **Méthode complétée (constat 9).** Modifier `js/app.js` (`vMethode`). But : une carte « Trajets au sol et voitures de location » donne les formules et les hypothèses, chacune marquée « hypothèse » ou avec sa source : vol d'oiseau × 1,2 (train) ou × 1,3 (route), 4 personnes par voiture, facteur train selon le pays (TGV, Intercités, Amtrak), location = carburant × facteur + km × fabrication (0,041, ADEME 43791), électricité (EPA eGRID, Hydro-Québec), polluants jamais ajoutés aux tCO2e ; les sources de la note finale citent aussi l'EPA (consommations des véhicules, eGRID). Test : chaque nombre de `MODES_SOL`, `legSol` et `vehicules.js` apparaît dans la Méthode.
+5. **Facteurs carburant (constat 10).** Modifier `js/vehicules.js`. But : essence et gazole vérifiés dans la Base Empreinte (data.ademe.fr), valeur et identifiant dans la source, mention « À vérifier » retirée pour ces deux lignes. Test : Toyota Corolla → 0,221 kgCO2e/km si l'essence vaut 2,69 (valeur à confirmer dans la base au moment de la phase).
+6. **Parcours d'un étudiant (constat 11).** Modifier `js/visuals.js` (`parcours`). But : les trajets au sol d'un itinéraire apparaissent à leur place et les locations à la fin. Test : MRS → CDG en train → total du parcours = total du groupe ÷ participants (2 533 kg, aujourd'hui 2 528 kg).
+7. **Même chiffre partout (constat 12).** Modifier `js/app.js` (Saisie). But : la colonne tCO2e d'un itinéraire = avion + trajets au sol, comme dans Trajets. Test : MRS → CDG en train → même chiffre dans Saisie et dans Trajets.
+8. **Fiabilité (constat 13).** Modifier `js/visuals.js` (`fiabilite`). But : les trajets au sol et les locations comptent dans la part sourcée ou en hypothèse. Test : avec l'exemple de location (hypothèse), la part en hypothèse augmente de son poids.
+9. **Textes du levier TGV (constat 15).** Modifier `js/app.js` (Scénarios). But : la durée « ≈ 4 h » n'apparaît que pour la ligne Marseille → Paris-CDG documentée dans `js/leviers.js` ; pour une autre ligne, « durée à vérifier ». Le titre ne cite plus Paris-CDG : « TGV au lieu des vols en France ». Test : NCE-ORY-JFK → pas de « ≈ 4 h ».
+10. **Versions.** `index.html` : tous les `?v=` passent à `2026-11-19p`.
+
+Contrôles : script de recalcul (tests 2, 3, 6, 7, 8) ; total des hypothèses 172,4 / 95,3 t ; aperçu des 6 onglets en avant et en arrière, à 375 px et à l'ordinateur, console sans erreur. Prévenir Quentin (Scénarios dans `app.js`), Maxime (`visuals.js`), Adrien (`vehicules.js`).
+Message de commit : « Phase 3 de l'audit : textes et données cohérents ».
 ### STOP — fin de la phase 3
 
 ## Phase 4 — Base partagée et calcul « saisies + hypothèse »
