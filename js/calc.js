@@ -85,6 +85,30 @@
     return km * trajets * pax * m.f;
   }
 
+  // Voiture de location (onglet Trajets). Base de véhicules : js/vehicules.js.
+  // Les polluants (NOx, PM, CO, en g) sont indicatifs et ne s'ajoutent jamais aux kgCO2e.
+  function calcLocation(l, g, opts = {}) {
+    const V = window.VEHICULES;
+    const z = { kg: 0, qty: 0, unite: 'L', nox: 0, pm: 0, co: 0, personnes: 0, parPers: 0, km: 0 };
+    const m = V && V.modeles.find(x => x.id === l.modele);
+    if (!m) return z;
+    const trajets = l.ar ? 2 : 1;
+    const nv = Math.max(0, +l.nv || 0), pers = Math.max(0, +l.pers || 0), km = Math.max(0, +l.km || 0);
+    const personnes = nv * pers, kmVeh = km * trajets * nv;
+    if (opts.carToBus && m.energie !== 'elec') {
+      // Scénario « navette » : les mêmes personnes font le trajet en autocar.
+      const kg = km * trajets * personnes * F.terrestre.autocar.f;
+      return { ...z, kg, personnes, parPers: personnes ? kg / personnes : 0, km: kmVeh, bus: true };
+    }
+    const pays = g && (g.pays || (g.id === 'hec' ? 'CA' : 'US'));
+    const e = V.energies[m.energie === 'elec' ? (pays === 'CA' ? 'elec_qc' : 'elec_us') : m.energie];
+    const qty = kmVeh * m.conso / 100;
+    const kg = qty * e.f + kmVeh * V.fabricationKm;
+    const n = V.normes[m.norme] || {};
+    return { kg, qty, unite: e.unite, energie: e, modele: m, km: kmVeh, personnes, parPers: personnes ? kg / personnes : 0,
+      nox: kmVeh * (n.nox || 0) / 1000, pm: kmVeh * (n.pm || 0) / 1000, co: kmVeh * (n.co || 0) / 1000 };
+  }
+
   function calculer(st, extra = {}) {
     const opts = { rf: st.rf, ...extra };
     const res = { groupes: [], total: 0, air: 0, corr: 0, terrestre: 0, train: 0, participants: 0, erreurs: [], hypotheses: 0 };
@@ -101,6 +125,12 @@
         r.terr.push(kg); r.terrestre += kg;
         if (/hypoth/i.test(t.source || '')) res.hypotheses++;
       }
+      r.loc = []; r.location = 0;
+      for (const l of g.locations || []) {
+        const x = calcLocation(l, g, opts);
+        r.loc.push(x); r.location += x.kg; r.terrestre += x.kg;
+        if (/hypoth/i.test(l.source || '')) res.hypotheses++;
+      }
       r.terrestre += r.train; // le train du scénario « pré-acheminement » est un déplacement terrestre
       r.total = r.air + r.terrestre;
       r.parEtudiant = r.participants ? r.total / r.participants : 0;
@@ -113,5 +143,5 @@
     return res;
   }
 
-  window.Calc = { aeroport, orthodromie, itineraire, calcVol, calcTerrestre, calculer };
+  window.Calc = { aeroport, orthodromie, itineraire, calcVol, calcTerrestre, calcLocation, calculer };
 })();

@@ -112,7 +112,8 @@ window.HYPOTHESES = {
         { label: 'Domicile / IAE → aéroport de Marseille', mode: 'autocar', km: 30, pax: 36, ar: true, occ: 1, source: 'Hypothèse' },
         { label: 'Indianapolis → Bloomington', mode: 'autocar', km: 85, pax: 36, ar: true, occ: 1, source: 'Hypothèse' },
         { label: 'Déplacements sur place (visites)', mode: 'autocar', km: 120, pax: 36, ar: false, occ: 1, source: 'Hypothèse' }
-      ]
+      ],
+      locations: [] // voitures de location (onglet Trajets) : vide tant qu'aucune donnée n'est reçue
     },
     {
       id: 'hec', nom: 'HEC Montréal (Canada)', participants: 34,
@@ -123,7 +124,8 @@ window.HYPOTHESES = {
         { label: 'Domicile / IAE → aéroport de Marseille', mode: 'autocar', km: 30, pax: 34, ar: true, occ: 1, source: 'Hypothèse' },
         { label: 'Aéroport → centre de Montréal', mode: 'autocar', km: 20, pax: 34, ar: true, occ: 1, source: 'Hypothèse' },
         { label: 'Transports sur place (métro)', mode: 'metro', km: 60, pax: 34, ar: false, occ: 1, source: 'Hypothèse' }
-      ]
+      ],
+      locations: []
     }
   ],
   scenarios: { direct: false, trainFr: false, carToBus: false, eco: false },
