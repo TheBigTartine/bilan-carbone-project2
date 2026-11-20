@@ -488,7 +488,13 @@
     else if (e.key === 'Enter' || e.key === 'Tab') { if (items[idx]) { e.preventDefault(); const it = items[idx], f = onPick; closeMenu(); f(it); } }
     else if (e.key === 'Escape') closeMenu();
   }
+  // Villes et aéroports (calculateur libre, js/calculateur.js).
+  function suggererLieu(input, st, pick) {
+    const q = input.value;
+    openMenu(input, chercher(lieux(st), q, [['ville', 1], ['label', 3], ['code', 1]]),
+      p => `<span class="ac-code">${p.code ? '✈' : '●'}</span><span><b>${surligne(p.ville, q)}</b> · ${esc(p.detail)}<small>${esc(PAYS[p.pays] || p.pays)}</small></span>`, pick);
+  }
   const villeAeroport = code => villeDe[code] || (window.AEROPORTS[code] || [code])[0];
 
-  window.Trajets = { view, bind, suggerer, clavierMenu, fermerMenu: closeMenu, villeAeroport };
+  window.Trajets = { view, bind, suggerer, suggererLieu, clavierMenu, fermerMenu: closeMenu, villeAeroport };
 })();

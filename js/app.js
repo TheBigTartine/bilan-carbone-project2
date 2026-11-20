@@ -893,6 +893,7 @@
   const ctx = { st: () => st, save, render: soft => render(soft), toast };
   const ROUTES = {
     accueil: [() => Accueil.portes(ctx), v => Accueil.bindPortes(v, ctx)],
+    calculer: [() => Calculateur.view(ctx), v => Calculateur.bind(v, ctx)],
     'mon-voyage': [() => Accueil.view(ctx), v => Accueil.bind(v, ctx)],
     'mon-trajet': [() => Accueil.form(ctx), v => Accueil.bindForm(v, ctx)],
     trajets: [() => Trajets.view(ctx), v => Trajets.bind(v, ctx)],
@@ -962,7 +963,7 @@
 
   // ---------- Glisser à gauche / à droite pour changer d'onglet (téléphone) ----------
   (() => {
-    const order = ['accueil', 'mon-voyage', 'synthese', 'scenarios', 'trajets', 'saisie', 'rapport', 'methode'];
+    const order = ['accueil', 'calculer', 'mon-voyage', 'synthese', 'scenarios', 'trajets', 'saisie', 'rapport', 'methode'];
     let x0 = null, y0 = 0;
     document.addEventListener('touchstart', e => {
       if (e.target.closest('input, select, textarea, .table-wrap, canvas, .viz-scroll')) { x0 = null; return; }

@@ -166,7 +166,13 @@
           <p>Saisis ton trajet, découvre ton empreinte et celle de ton groupe.</p>
           <span class="btn primary porte-btn">Mon voyage</span>
         </a>
-        <div class="card porte" style="--i:1">
+        <a class="card porte" href="#/calculer" style="--i:1">
+          <span class="porte-ic"><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v4h10V4zm0 6v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2zm-8 4v2h2v-2zm4 0v2h2v-2zm4 0v6h2v-6zm-8 4v2h2v-2zm4 0v2h2v-2z"/></svg></span>
+          <h2>Je calcule un trajet</h2>
+          <p>N'importe quel trajet, en avion, train, autocar ou voiture. Hors bilan : rien n'est enregistré.</p>
+          <span class="btn primary porte-btn">Calculer</span>
+        </a>
+        <div class="card porte" style="--i:2">
           <span class="porte-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.7-.9.9A3.4 3.4 0 0 0 13 15h-2v-.5a4 4 0 0 1 1.2-2.8l1.2-1.3A2 2 0 1 0 10 9H8a4 4 0 1 1 7.1 2.3z"/></svg></span>
           <h2>Je veux comprendre</h2>
           <p>Comment un billet d'avion devient des kilos de CO2 : la visite guidée pas à pas, puis la méthode complète.</p>

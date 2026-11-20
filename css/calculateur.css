@@ -1,0 +1,26 @@
+/* Calculateur libre (js/calculateur.js). */
+
+.calc-grille { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.calc-form .mt-champ:first-child { margin-top: 0; }
+.calc-opt { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; font-weight: 600; font-size: 13.5px; }
+.calc-opt .seg { flex-wrap: wrap; align-self: flex-start; border-radius: 18px; }
+.calc-opt .seg button { min-height: 38px; font-size: 13.5px; }
+.calc-droite { display: grid; gap: 18px; }
+.calc-vide { padding: 22px 24px; }
+.calc-res { padding: 22px 24px; }
+.calc-detail { margin: 8px 0 0; color: var(--text-2); font-size: 13.5px; }
+.calc-impossible { margin: 10px 0 0; font-weight: 600; font-size: 16px; }
+.calc-comp h3 { margin: 0 0 10px; font-size: 15px; }
+.calc-ligne { display: grid; grid-template-columns: 5.5em minmax(0, 1fr) 5.5em; align-items: center; gap: 10px; padding: 7px 0; font-size: 13.5px; }
+.calc-ligne.ici { font-weight: 700; }
+.calc-ligne.ici .calc-nom { color: var(--accent); }
+.calc-barre { height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.calc-barre span { display: block; height: 100%; border-radius: 999px; background: var(--b); transition: width .9s ease-in-out; }
+.calc-val { text-align: right; }
+
+@media (max-width: 760px) {
+  .calc-grille { grid-template-columns: 1fr; }
+  .calc-opt .seg { align-self: stretch; }
+  .calc-opt .seg button { flex: 1; min-height: 42px; padding: 6px 10px; }
+  .calc-opt .calc-seg2 { display: grid; grid-template-columns: 1fr 1fr; }
+}
