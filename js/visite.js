@@ -81,7 +81,8 @@
   // ---------- Les 10 bulles ----------
   function etapes(st) {
     const c = chiffres(st), conv = st.rf ? 'avec' : 'sans';
-    const nav = r => document.querySelector(`.nav a[data-route="${r}"]`);
+    const vis = e => e && e.offsetParent !== null;
+    const nav = (...sel) => sel.map(s => document.querySelector(s)).find(vis);
     const bas = () => matchMedia('(max-width: 760px)').matches ? 'top' : 'right';
     return [
       { popover: { showButtons: ['next', 'close'], title: 'Bienvenue !', description: '<p>Ce site calcule le <b>bilan carbone des déplacements</b> des deux Study Tours (Kelley et HEC Montréal) : combien de CO2 nos trajets envoient dans l\'air.</p><p>En 10 bulles, on voit comment saisir ton trajet et comment le chiffre est calculé.</p>' } },
@@ -92,8 +93,8 @@
       { popover: { title: '3. Les traînées', description: `<p>En altitude, l'avion laisse un « nuage » de traînées qui réchauffe aussi le climat. Avec lui, le bilan est <b>multiplié par environ ${nf(c.ratio, 1)}</b>.</p>${svgTrainees(c)}` } },
       { popover: { title: '4. Les escales', description: `<p>Chaque escale, c'est <b>un décollage en plus</b>, et souvent un détour. Pour un étudiant Kelley (aller et retour), les escales ajoutent environ <b>${nf(c.corr)} kg</b>.</p>${svgEscale()}` } },
       { popover: { title: '5. Le résultat', description: `<p>Au bout du calcul, l'aller-retour en avion d'un étudiant Kelley émet <b>${nf(c.kg)} kg</b>.</p><div class="vg-grand"><b class="num">${nf(c.tgv)}</b><span>allers-retours Paris–Marseille en TGV</span></div><p>ou ${nf(c.voiture)} km seul en voiture thermique.</p>` } },
-      { element: nav('synthese'), popover: { title: 'La Synthèse', description: '<p>Le détail du bilan : par groupe, par mode de transport, et le poids des escales.</p>', side: bas() } },
-      { element: nav('scenarios'), popover: { title: 'Les Scénarios', description: '<p>Et si on voyageait autrement ? Tu y coches des leviers pour <b>réduire</b> le bilan, puis tu vois le budget pour financer ce qui reste.</p>', side: bas() } }
+      { element: nav('.nav a[data-route="synthese"]'), popover: { title: 'Les résultats', description: '<p>La <b>Synthèse</b> détaille le bilan : par groupe, par mode de transport, et le poids des escales.</p><p>Les <b>Scénarios</b> montrent comment le réduire (train, meilleur itinéraire) et le budget pour financer ce qui reste.</p>', side: bas() } },
+      { element: nav('#nav-plus', '.nav a[data-route="methode"]'), popover: { title: 'Pour aller plus loin', description: '<p>La <b>Méthode</b> explique chaque calcul et ses sources. Les autres outils (Trajets, Saisie, Rapport) servent au pôle bilan carbone.</p>', side: bas() } }
     ];
   }
 
@@ -112,10 +113,11 @@
   }
 
   // Premier passage sur l'accueil : attend la fin de l'écran d'ouverture et le chargement de la collecte.
-  let attente = false;
+  let attente = false, demande = false;
   function auto(ctx) {
     let vue = false; try { vue = localStorage.getItem(CLE) === 'vue'; } catch (e) { vue = true; }
-    if (vue || attente || enCours || !dispo()) return;
+    if ((vue && !demande) || attente || enCours || !dispo()) return;
+    demande = false;
     attente = true;
     let n = 0;
     const essai = () => {
@@ -124,11 +126,13 @@
       if (!pret && n < 40) return setTimeout(essai, 250);
       attente = false;
       const h = location.hash.replace(/^#\/?/, '');
-      if (h === '' || h === 'accueil') setTimeout(() => lancer(ctx), 400);
+      if (h === 'mon-voyage') setTimeout(() => lancer(ctx), 400);
     };
     setTimeout(essai, 250);
   }
   const fermer = () => { if (enCours) enCours.destroy(); };
+  // Porte « Je veux comprendre » de l'accueil : ouvre « Mon voyage » et y lance la visite.
+  const demander = () => { demande = true; location.hash = '#/mon-voyage'; };
 
-  window.Visite = { lancer, auto, fermer, dispo, chiffres };
+  window.Visite = { lancer, auto, fermer, demander, dispo, chiffres };
 })();

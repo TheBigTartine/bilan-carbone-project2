@@ -151,6 +151,39 @@
         <button type="button" class="btn primary quiz-btn" data-quiz-suivant>${q.i + 1 < Q.length ? 'Question suivante' : 'Voir mon score'}</button>`}`;
   }
 
+  // =====================================================================
+  // Accueil : les portes d'entrée (Study Tour, comprendre)
+  // =====================================================================
+  function portes() {
+    const visite = window.Visite && Visite.dispo();
+    return `
+      <div class="head"><div><div class="page-title">Pôle bilan carbone · Masters MG FF &amp; ISDBC</div><h1 style="font-size:28px">Bienvenue</h1></div></div>
+      <p class="portes-intro">Ce site calcule l'empreinte carbone des déplacements des deux Study Tours 2026-2027 : Kelley (États-Unis) et HEC Montréal (Canada). Par où veux-tu commencer ?</p>
+      <div class="portes">
+        <a class="card porte" href="#/mon-voyage" style="--i:0">
+          <span class="porte-ic"><svg viewBox="0 0 24 24"><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm2 0h4V4h-4z"/></svg></span>
+          <h2>Je pars en Study Tour</h2>
+          <p>Saisis ton trajet, découvre ton empreinte et celle de ton groupe.</p>
+          <span class="btn primary porte-btn">Mon voyage</span>
+        </a>
+        <div class="card porte" style="--i:1">
+          <span class="porte-ic"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.7-.9.9A3.4 3.4 0 0 0 13 15h-2v-.5a4 4 0 0 1 1.2-2.8l1.2-1.3A2 2 0 1 0 10 9H8a4 4 0 1 1 7.1 2.3z"/></svg></span>
+          <h2>Je veux comprendre</h2>
+          <p>Comment un billet d'avion devient des kilos de CO2 : la visite guidée pas à pas, puis la méthode complète.</p>
+          <div class="porte-actions">
+            ${visite ? `<button type="button" class="btn primary porte-btn" data-visite-demande>Visite guidée</button>` : ''}
+            <a class="btn porte-btn" href="#/methode">La méthode</a>
+          </div>
+        </div>
+      </div>`;
+  }
+  function bindPortes(view) {
+    view.addEventListener('click', e => { if (e.target.closest('[data-visite-demande]')) Visite.demander(); });
+  }
+
+  // =====================================================================
+  // Mon voyage
+  // =====================================================================
   function view(ctx) {
     const st = ctx.st(), r = Calc.calculer(st), moi = lireMoi();
     const emp = moi && moi.trajet ? carteEmpreinte(st, r, moi) : '';
@@ -291,7 +324,7 @@
         <p>Ton trajet compte maintenant dans le bilan, à la place d'une hypothèse.</p>
         ${emp ? `<div class="mt-emp">${emp}</div>` : ''}
         <div class="jauge mt2">${jauge(st, r)}</div>
-        <a class="btn primary mt2 mv-cta" href="#/">Retour à l'accueil</a>
+        <a class="btn primary mt2 mv-cta" href="#/mon-voyage">Retour à Mon voyage</a>
       </div>`;
   }
 
@@ -307,7 +340,7 @@
         ${corps}
         ${f.erreur ? `<p class="down mt-err" role="alert">${esc(f.erreur)}</p>` : ''}
         <div class="mt-nav">
-          ${f.etape > 1 ? `<button type="button" class="btn" data-retour>Retour</button>` : `<a class="btn" href="#/">Annuler</a>`}
+          ${f.etape > 1 ? `<button type="button" class="btn" data-retour>Retour</button>` : `<a class="btn" href="#/mon-voyage">Annuler</a>`}
           ${f.etape < 4 ? `<button type="button" class="btn primary" data-suivant>Suivant</button>`
             : `<button type="button" class="btn primary" data-envoyer ${f.envoi ? 'disabled' : ''}>${f.envoi ? 'Envoi…' : 'Envoyer mon trajet'}</button>`}
         </div>
@@ -374,5 +407,5 @@
   // Quitter le formulaire (autre onglet) : le brouillon repart de zéro la prochaine fois, sauf pendant un envoi.
   const quitter = () => { if (f && !f.envoi) f = null; };
 
-  window.Accueil = { view, bind, form, bindForm, quitter };
+  window.Accueil = { portes, bindPortes, view, bind, form, bindForm, quitter };
 })();

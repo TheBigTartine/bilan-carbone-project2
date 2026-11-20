@@ -89,6 +89,24 @@ p { margin: 0; }
 .nav a svg { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
 @media (hover: hover) { .nav a:hover { background: var(--surface-2); color: var(--text); } }
 .nav a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+/* Navigation en deux groupes (ordinateur) ; « Résultats » et « Plus » au téléphone. */
+.nav-titre { margin: 14px 12px 4px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.nav-tel, .nav .nav-plus { display: none; }
+.nav .nav-plus { position: relative; z-index: 1; flex-direction: column; align-items: center; gap: 1px; padding: 7px 2px 6px; font: inherit; font-size: 10px; color: var(--text-2); background: none; border: 0; border-radius: 999px; cursor: pointer; flex: 1; }
+.nav .nav-plus svg { width: 21px; height: 21px; fill: currentColor; }
+.nav .nav-plus.active { color: var(--accent); font-weight: 600; }
+.plus-menu { position: absolute; right: 0; bottom: calc(100% + 10px); width: min(320px, calc(100vw - 20px)); padding: 8px; border-radius: 22px; border: .5px solid var(--border); background: var(--surface); box-shadow: 0 18px 50px rgba(0, 0, 0, .35); z-index: 40; }
+.plus-menu[hidden] { display: none; }
+.plus-titre { padding: 8px 12px 6px; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.plus-menu a { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 12px; border-radius: 14px; color: var(--text); text-decoration: none; font-weight: 600; }
+.plus-menu a svg { width: 22px; height: 22px; fill: currentColor; flex-shrink: 0; color: var(--text-2); }
+.plus-menu a small { display: block; font-weight: 400; font-size: 12px; color: var(--text-3); }
+.plus-menu a.active { background: var(--accent-soft); color: var(--accent); }
+.plus-menu a.active svg { color: var(--accent); }
+/* Interrupteur Synthèse / Scénarios */
+.res-switch { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 16px; border-radius: 999px; background: var(--surface-2); }
+.res-switch a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 18px; border-radius: 999px; color: var(--text-2); font-weight: 600; font-size: 14px; text-decoration: none; }
+.res-switch a.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0, 0, 0, .2); }
 .sidebar-foot { margin-top: auto; padding: 0 12px; color: var(--text-3); font-size: 12px; line-height: 1.5; display: flex; flex-direction: column; gap: 10px; }
 .theme-btn { align-self: flex-start; width: 36px; height: 36px; border-radius: 50%; border: 0; background: var(--surface-2); color: var(--text); display: grid; place-items: center; cursor: pointer; }
 .theme-btn svg { width: 18px; height: 18px; fill: currentColor; }
@@ -230,6 +248,11 @@ code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px
   :root[data-theme="light"] .sidebar { box-shadow: 0 10px 30px rgba(0, 0, 0, .12), inset 0 .5px 0 rgba(255, 255, 255, .8); }
   .brand, .sidebar-foot .faint { display: none; }
   .nav { flex-direction: row; flex: 1; justify-content: space-around; }
+  .nav-pc, .nav-titre { display: none !important; }
+  .nav-tel { display: inline; }
+  .nav .nav-plus { display: flex; }
+  .sidebar { position: fixed; }
+  .res-switch a { min-height: 40px; }
   .nav a { flex-direction: column; gap: 1px; padding: 7px 2px 6px; font-size: 10px; flex: 1; text-align: center; border-radius: 999px; }
   .nav a svg { width: 21px; height: 21px; }
   .nav .bubble { border-radius: 999px; }

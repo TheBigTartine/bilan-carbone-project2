@@ -9,12 +9,12 @@
   <title>Bilan Carbone · Project 2</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <script>try{var t=localStorage.getItem('bilan-carbone.theme')||'dark';document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme='dark'}</script>
-  <link rel="stylesheet" href="css/style.css?v=2026-11-19v">
-  <link rel="stylesheet" href="css/trajets.css?v=2026-11-19v">
-  <link rel="stylesheet" href="css/scenarios.css?v=2026-11-19v">
-  <link rel="stylesheet" href="css/accueil.css?v=2026-11-19v">
+  <link rel="stylesheet" href="css/style.css?v=2026-11-20a">
+  <link rel="stylesheet" href="css/trajets.css?v=2026-11-20a">
+  <link rel="stylesheet" href="css/scenarios.css?v=2026-11-20a">
+  <link rel="stylesheet" href="css/accueil.css?v=2026-11-20a">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
-  <link rel="stylesheet" href="css/visite.css?v=2026-11-19v">
+  <link rel="stylesheet" href="css/visite.css?v=2026-11-20a">
 </head>
 <body>
   <div id="splash" aria-hidden="true"><div class="splash-in"><div class="splash-logo"><span class="splash-dot"></span>Bilan Carbone</div><div class="splash-num num"></div></div></div>
@@ -25,13 +25,24 @@
     <div class="brand"><span class="brand-dot"></span><div>Bilan Carbone<small>Project 2 · Study Tours</small></div></div>
     <nav class="nav" id="nav">
       <a href="#/" data-route="accueil"><svg viewBox="0 0 24 24"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg><span>Accueil</span></a>
-      <a href="#/trajets" data-route="trajets"><svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg><span>Trajets</span></a>
-      <a href="#/synthese" data-route="synthese"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z"/></svg><span>Synthèse</span></a>
-      <a href="#/saisie" data-route="saisie"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg><span>Saisie</span></a>
-      <a href="#/scenarios" data-route="scenarios"><svg viewBox="0 0 24 24"><path d="M3 17h4v4H3zm0-7h4v4H3zm0-7h4v4H3zm7 1h11v2H10zm0 7h11v2H10zm0 7h11v2H10z"/></svg><span>Scénarios</span></a>
-      <a href="#/rapport" data-route="rapport"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h10v2H8zm0 4h10v2H8zm0-8h5v2H8z"/></svg><span>Rapport</span></a>
-      <a href="#/methode" data-route="methode"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.7-.9.9A3.4 3.4 0 0 0 13 15h-2v-.5a4 4 0 0 1 1.2-2.8l1.2-1.3A2 2 0 1 0 10 9H8a4 4 0 1 1 7.1 2.3z"/></svg><span>Méthode</span></a>
+      <div class="nav-titre">Study Tour</div>
+      <a href="#/mon-voyage" data-route="mon-voyage" data-aussi="mon-trajet"><svg viewBox="0 0 24 24"><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm2 0h4V4h-4z"/></svg><span>Mon voyage</span></a>
+      <a href="#/synthese" data-route="synthese" data-aussi="scenarios"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8zm0-18v6h8V3z"/></svg><span class="nav-pc">Synthèse</span><span class="nav-tel">Résultats</span></a>
+      <a href="#/scenarios" data-route="scenarios" class="nav-pc"><svg viewBox="0 0 24 24"><path d="M3 17h4v4H3zm0-7h4v4H3zm0-7h4v4H3zm7 1h11v2H10zm0 7h11v2H10zm0 7h11v2H10z"/></svg><span>Scénarios</span></a>
+      <div class="nav-titre">Outils du pôle</div>
+      <a href="#/trajets" data-route="trajets" class="nav-pc"><svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg><span>Trajets</span></a>
+      <a href="#/saisie" data-route="saisie" class="nav-pc"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg><span>Saisie</span></a>
+      <a href="#/rapport" data-route="rapport" class="nav-pc"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h10v2H8zm0 4h10v2H8zm0-8h5v2H8z"/></svg><span>Rapport</span></a>
+      <a href="#/methode" data-route="methode" class="nav-pc"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.7-.9.9A3.4 3.4 0 0 0 13 15h-2v-.5a4 4 0 0 1 1.2-2.8l1.2-1.3A2 2 0 1 0 10 9H8a4 4 0 1 1 7.1 2.3z"/></svg><span>Méthode</span></a>
+      <button type="button" class="nav-plus nav-tel" id="nav-plus" data-aussi="trajets saisie rapport methode" aria-expanded="false" aria-controls="plus-menu"><svg viewBox="0 0 24 24"><path d="M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg><span>Plus</span></button>
     </nav>
+    <div class="plus-menu" id="plus-menu" hidden>
+      <div class="plus-titre">Outils du pôle et méthode</div>
+      <a href="#/trajets" data-plus="trajets"><svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg><span>Trajets<small>Itinéraires et voitures de location des groupes</small></span></a>
+      <a href="#/saisie" data-plus="saisie"><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg><span>Saisie<small>Tableau détaillé des déplacements</small></span></a>
+      <a href="#/rapport" data-plus="rapport"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h10v2H8zm0 4h10v2H8zm0-8h5v2H8z"/></svg><span>Rapport<small>Le rapport à imprimer</small></span></a>
+      <a href="#/methode" data-plus="methode"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 17h-2v-2h2zm2.1-7.7-.9.9A3.4 3.4 0 0 0 13 15h-2v-.5a4 4 0 0 1 1.2-2.8l1.2-1.3A2 2 0 1 0 10 9H8a4 4 0 1 1 7.1 2.3z"/></svg><span>Méthode<small>Comment chaque chiffre est calculé</small></span></a>
+    </div>
     <div class="sidebar-foot">
       <button class="theme-btn" id="theme" title="Mode clair / sombre" aria-label="Mode clair / sombre">
         <svg class="sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zm0 19h2v3h-2zM1 11h3v2H1zm19 0h3v2h-3zM4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4zm12.1 12.1 1.4-1.4 2.1 2.1-1.4 1.4zM4.2 18.4l2.1-2.1 1.4 1.4-2.1 2.1zM16.3 6.3l2.1-2.1 1.4 1.4-2.1 2.1z"/></svg>
@@ -49,18 +60,18 @@
   <script src="https://cdn.jsdelivr.net/npm/d3-array@3.2.4/dist/d3-array.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3-geo@3.1.1/dist/d3-geo.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-  <script src="js/data.js?v=2026-11-19v"></script>
-  <script src="js/aeroports.js?v=2026-11-19v"></script>
-  <script src="js/vehicules.js?v=2026-11-19v"></script>
-  <script src="js/leviers.js?v=2026-11-19v"></script>
-  <script src="js/partage.js?v=2026-11-19v"></script>
-  <script src="js/calc.js?v=2026-11-19v"></script>
-  <script src="js/visuals.js?v=2026-11-19v"></script>
-  <script src="js/glossary.js?v=2026-11-19v"></script>
+  <script src="js/data.js?v=2026-11-20a"></script>
+  <script src="js/aeroports.js?v=2026-11-20a"></script>
+  <script src="js/vehicules.js?v=2026-11-20a"></script>
+  <script src="js/leviers.js?v=2026-11-20a"></script>
+  <script src="js/partage.js?v=2026-11-20a"></script>
+  <script src="js/calc.js?v=2026-11-20a"></script>
+  <script src="js/visuals.js?v=2026-11-20a"></script>
+  <script src="js/glossary.js?v=2026-11-20a"></script>
   <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
-  <script src="js/trajets.js?v=2026-11-19v"></script>
-  <script src="js/visite.js?v=2026-11-19v"></script>
-  <script src="js/accueil.js?v=2026-11-19v"></script>
-  <script src="js/app.js?v=2026-11-19v"></script>
+  <script src="js/trajets.js?v=2026-11-20a"></script>
+  <script src="js/visite.js?v=2026-11-20a"></script>
+  <script src="js/accueil.js?v=2026-11-20a"></script>
+  <script src="js/app.js?v=2026-11-20a"></script>
 </body>
 </html>

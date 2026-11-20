@@ -78,6 +78,9 @@
   });
 
   // ---------- Petits composants ----------
+  // Interrupteur des deux pages de résultats (onglet « Résultats » au téléphone).
+  const resultats = ici => `<nav class="res-switch no-print" aria-label="Résultats">${[['synthese', 'Synthèse'], ['scenarios', 'Scénarios']].map(([r, l]) =>
+    `<a href="#/${r}"${r === ici ? ' class="on" aria-current="page"' : ''}>${l}</a>`).join('')}</nav>`;
   const seg = () => `<div class="seg-wrap no-print"><div class="seg" role="group" aria-label="Traînées de condensation">
       <button data-rf="1" class="${st.rf ? 'on' : ''}">Avec traînées</button><button data-rf="0" class="${st.rf ? '' : 'on'}">Sans traînées</button></div><span class="info" tabindex="0" data-tip="${esc(Lexique.definition('traînées'))}" aria-label="Qu'est-ce que les traînées ?">i</span></div>`;
   const kpi = (label, kg, sub, color, i) => `<div class="card tilt" style="--i:${i}">
@@ -103,7 +106,7 @@
     const direct = r.air - r.corr;
     const repere = r.parEtudiant / F.reperes.objectifParisKg;
     const eqv = Viz.equivalences(r);
-    return `
+    return `${resultats('synthese')}
       <div class="head"><div><div class="page-title">Study Tours 2026-2027 · ${r.participants} étudiants</div><h1 style="font-size:28px">Empreinte carbone des mobilités</h1></div>${seg()}</div>
       <div class="dash-top">
         <div class="dash-left">
@@ -618,7 +621,7 @@
     const reps = LV.prix.reperes || [];
     const libre = !reps.some(r => r.prix === st.prixTonne);
 
-    return `<div class="sc-page${doux ? ' sc-calm' : ''}">
+    return `<div class="sc-page${doux ? ' sc-calm' : ''}">${resultats('scenarios')}
       <div class="head"><div><div class="page-title">Scénarios · réduire, puis contribuer</div><h1 style="font-size:28px">Et si on voyageait autrement ?</h1></div>${seg()}</div>
 
       <section class="card sc-hero">
@@ -889,7 +892,8 @@
   // Onglet Trajets (js/trajets.js) : onglet du pôle. Il lit et modifie le même état que l'onglet Saisie.
   const ctx = { st: () => st, save, render: soft => render(soft), toast };
   const ROUTES = {
-    accueil: [() => Accueil.view(ctx), v => Accueil.bind(v, ctx)],
+    accueil: [() => Accueil.portes(ctx), v => Accueil.bindPortes(v, ctx)],
+    'mon-voyage': [() => Accueil.view(ctx), v => Accueil.bind(v, ctx)],
     'mon-trajet': [() => Accueil.form(ctx), v => Accueil.bindForm(v, ctx)],
     trajets: [() => Trajets.view(ctx), v => Trajets.bind(v, ctx)],
     synthese: [vSynthese, aSynthese], saisie: [vSaisie, aSaisie], scenarios: [vScenarios, aScenarios],
@@ -900,7 +904,8 @@
   function render(soft) {
     const name = route();
     if (name !== 'mon-trajet') Accueil.quitter();
-    if (name !== 'accueil' && window.Visite) Visite.fermer(); // la visite guidée ne vit que sur l'accueil
+    if (name !== 'mon-voyage' && window.Visite) Visite.fermer(); // la visite guidée ne vit que sur « Mon voyage »
+    fermerPlus();
     const y = soft ? scrollY : 0;
     killCharts();
     const old = $('#view');
@@ -914,18 +919,28 @@
       const b = e.target.closest('[data-rf]'); if (!b) return;
       st.rf = b.dataset.rf === '1'; save(); render(true);
     });
-    $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.route === (name === 'mon-trajet' ? 'accueil' : name)));
-    moveBubble();
+    activer();
     if (!soft) $$('[data-count]', view).forEach(el => countUp(el));
     tilt(view);
     window.scrollTo(0, y);
   }
 
   // ---------- Pastille de navigation ----------
+  // Onglet actif : le lien de la page s'il est visible, sinon celui qui la regroupe
+  // (au téléphone : « Résultats » pour Scénarios, « Plus » pour les outils du pôle).
+  function activer() {
+    const name = route(), vis = e => e.offsetParent !== null;
+    const items = $$('#nav [data-route], #nav [data-aussi]');
+    items.forEach(e => e.classList.remove('active'));
+    const a = items.find(e => vis(e) && e.dataset.route === name) || items.find(e => vis(e) && (e.dataset.aussi || '').split(' ').includes(name));
+    if (a) a.classList.add('active');
+    $$('#plus-menu [data-plus]').forEach(e => e.classList.toggle('active', e.dataset.plus === name));
+    moveBubble();
+  }
   function moveBubble() {
     const nav = $('#nav'); let b = $('.bubble', nav);
     if (!b) { b = document.createElement('span'); b.className = 'bubble'; nav.prepend(b); nav.classList.add('has-bubble'); b.style.transition = 'none'; requestAnimationFrame(() => (b.style.transition = '')); }
-    const a = $('a.active', nav); if (!a) return;
+    const a = $('.active', nav); if (!a) return;
     const pos = `translate(${a.offsetLeft}px, ${a.offsetTop}px)`;
     if (b.style.transform && b.style.transform !== pos && !calm()) {
       b.classList.remove('moving'); void b.offsetWidth; b.classList.add('moving');
@@ -933,11 +948,21 @@
     b.style.width = a.offsetWidth + 'px'; b.style.height = a.offsetHeight + 'px';
     b.style.transform = pos;
   }
-  addEventListener('resize', () => { const b = $('#nav .bubble'); if (b) b.style.transform = ''; moveBubble(); });
+  addEventListener('resize', () => { const b = $('#nav .bubble'); if (b) b.style.transform = ''; activer(); });
+
+  // ---------- Menu « Plus » (téléphone) : outils du pôle et méthode ----------
+  function fermerPlus() { const m = $('#plus-menu'); if (m) m.hidden = true; const b = $('#nav-plus'); if (b) b.setAttribute('aria-expanded', 'false'); }
+  $('#nav-plus').addEventListener('click', e => {
+    e.stopPropagation();
+    const m = $('#plus-menu'), ouvrir = m.hidden;
+    m.hidden = !ouvrir; $('#nav-plus').setAttribute('aria-expanded', String(ouvrir));
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('#plus-menu, #nav-plus')) fermerPlus(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fermerPlus(); });
 
   // ---------- Glisser à gauche / à droite pour changer d'onglet (téléphone) ----------
   (() => {
-    const order = ['accueil', 'trajets', 'synthese', 'saisie', 'scenarios', 'rapport', 'methode'];
+    const order = ['accueil', 'mon-voyage', 'synthese', 'scenarios', 'trajets', 'saisie', 'rapport', 'methode'];
     let x0 = null, y0 = 0;
     document.addEventListener('touchstart', e => {
       if (e.target.closest('input, select, textarea, .table-wrap, canvas, .viz-scroll')) { x0 = null; return; }
