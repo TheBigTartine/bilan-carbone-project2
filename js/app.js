@@ -905,7 +905,7 @@
   function render(soft) {
     const name = route();
     if (name !== 'mon-trajet') Accueil.quitter();
-    if (name !== 'mon-voyage' && window.Visite) Visite.fermer(); // la visite guidée ne vit que sur « Mon voyage »
+    if (window.Visite) Visite.surPage(name); // la visite se ferme si l'on quitte la page où elle doit être
     fermerPlus();
     const y = soft ? scrollY : 0;
     killCharts();
