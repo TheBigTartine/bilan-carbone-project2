@@ -2,6 +2,8 @@
 
 .mv-grille { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
 .mv-cta { display: inline-flex; align-items: center; justify-content: center; margin-top: 18px; min-height: 48px; padding: 0 26px; font-size: 15px; font-weight: 700; text-decoration: none; }
+.mv-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.mv-visite { margin-top: 18px; min-height: 48px; padding: 0 22px; font-size: 15px; font-weight: 600; }
 .mv-deja { font-size: 12.5px; margin: 10px 0 0; }
 
 /* Jauge de la collecte */
@@ -76,7 +78,8 @@
 
 @media (max-width: 760px) {
   .mv-grille { grid-template-columns: 1fr; }
-  .mv-cta { width: 100%; }
+  .mv-cta, .mv-visite { width: 100%; }
+  .mv-visite { margin-top: 0; }
 }
 @media (max-width: 560px) {
   /* 7 onglets dans la barre du bas (Accueil en plus) : chacun garde au moins 40 px de large. */

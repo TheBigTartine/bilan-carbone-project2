@@ -311,5 +311,31 @@ Tâches :
 - Chaque étape de calcul a son petit schéma animé et une explication ludique en mots simples (niveau non-ingénieur, pas de formule brute).
 
 Critères de fin : voir la spec, phase 8.
-<!-- DÉTAIL : à écrire au début de la phase -->
+
+### Détail de la phase 8 (écrit le 19/11/2026 sur `4c1615b`)
+
+Règle commune : mots de tous les jours, pas de formule ; chaque chiffre est calculé en direct avec `Calc` et `FACTEURS` (il suit le bilan) ; schémas en SVG légers, animations lentes (≥ 800 ms, ease-in-out), coupées si l'appareil demande moins d'animations.
+
+1. **Bibliothèque** (`index.html`) : driver.js 1.3.1 depuis jsDelivr (`dist/driver.css` et `dist/driver.js.iife.js`, licence MIT, vérifiés disponibles). Si le fichier ne charge pas, le bouton de la visite ne s'affiche pas et rien ne casse.
+2. **Visite en 10 bulles** (`js/visite.js`, nouveau), toutes sur l'accueil (pas de changement d'onglet pendant la visite, donc rien ne se perd au retour arrière) :
+   1. Bienvenue : à quoi sert le site (le bilan carbone des déplacements des deux Study Tours).
+   2. Le grand total (bulle sur la carte du bilan).
+   3. « Saisir mon trajet » (bulle sur le bouton) : ton trajet remplace une hypothèse dans le bilan ; ton prénom n'est jamais affiché.
+   4. La distance : schéma Marseille → Indianapolis, le trait droit se dessine puis « + 95 km » de détours s'ajoutent.
+   5. Le facteur : barres des tranches de distance (valeurs ADEME du site) ; un vol court émet plus par km, comme une voiture en ville qui freine et redémarre.
+   6. Les traînées : un avion laisse un « nuage » en plus du CO2 ; le bilan est multiplié par ≈ 1,8.
+   7. Les correspondances : vol direct comparé à un vol avec escale, un décollage en plus.
+   8. Le résultat : ton aller-retour Kelley en avion = X allers-retours Paris–Marseille en TGV, ou X km seul en voiture.
+   9. L'onglet Synthèse (bulle sur l'onglet) : le détail par groupe.
+   10. L'onglet Scénarios (bulle sur l'onglet) : les leviers pour réduire et le budget pour ce qui reste.
+   Boutons « Retour », « Suivant », « Terminer », compteur « 3 / 10 », fermeture par la croix ou Échap.
+3. **Lancement** : au premier passage sur l'accueil (après l'écran d'ouverture), une seule fois par navigateur (`bilan-carbone.visite` dans le stockage local) ; jamais pendant la saisie du trajet. Bouton « Visite guidée » sur la carte du bilan de l'accueil pour la relancer.
+4. **Style** (`css/visite.css`, nouveau) : bulles aux couleurs du site (clair et sombre), schémas qui tiennent dans 375 px, boutons ≥ 40 px au toucher.
+5. **Versions** : `?v=` à `2026-11-19v`.
+
+Contrôles :
+- script de recalcul pour les chiffres des bulles 6 et 8 ;
+- aperçu à 375 px et à l'ordinateur : visite lancée seule la première fois et pas la deuxième, relancée par le bouton, 10 bulles en avant puis en arrière, animations visibles, rien au-delà de 375 px, Échap ferme ; 7 onglets en avant et en arrière, console sans erreur.
+
+Message de commit : « Phase 8 de l'audit : visite guidée ».
 ### STOP — fin de la phase 8

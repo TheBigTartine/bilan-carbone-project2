@@ -900,6 +900,7 @@
   function render(soft) {
     const name = route();
     if (name !== 'mon-trajet') Accueil.quitter();
+    if (name !== 'accueil' && window.Visite) Visite.fermer(); // la visite guidée ne vit que sur l'accueil
     const y = soft ? scrollY : 0;
     killCharts();
     const old = $('#view');

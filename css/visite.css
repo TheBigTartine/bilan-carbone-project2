@@ -1,0 +1,41 @@
+/* Visite guidée (js/visite.js) : bulles de driver.js aux couleurs du site, petits schémas animés. */
+
+.driver-popover.vg-pop { background: var(--surface); color: var(--text); border: .5px solid var(--border); border-radius: 18px; padding: 18px 18px 14px; max-width: min(360px, calc(100vw - 32px)); min-width: 0; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); font-family: var(--font); }
+.driver-popover.vg-pop .driver-popover-title { font-size: 18px; font-weight: 800; color: var(--text); }
+.driver-popover.vg-pop .driver-popover-description { font-size: 14px; line-height: 1.55; color: var(--text-2); }
+.driver-popover.vg-pop .driver-popover-description p { margin: 6px 0; }
+.driver-popover.vg-pop .driver-popover-description b { color: var(--text); }
+.driver-popover.vg-pop .driver-popover-progress-text { color: var(--text-3); font-size: 12.5px; }
+.driver-popover.vg-pop .driver-popover-footer { margin-top: 12px; gap: 8px; }
+.driver-popover.vg-pop .driver-popover-footer button { min-height: 40px; padding: 0 14px; border-radius: 12px; border: .5px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px; font-weight: 600; text-shadow: none; }
+.driver-popover.vg-pop .driver-popover-footer .driver-popover-next-btn { background: var(--accent); border-color: var(--accent); color: #04130b; }
+.driver-popover.vg-pop .driver-popover-close-btn { width: 40px; height: 40px; color: var(--text-3); }
+.driver-popover.vg-pop .driver-popover-arrow { display: none; }
+
+/* Schémas */
+.vg-svg { display: block; width: 100%; height: auto; margin: 10px 0 4px; overflow: visible; }
+.vg-svg text { font-size: 11px; fill: var(--text-2); font-family: var(--font); }
+.vg-svg .vg-val { font-weight: 700; fill: var(--text); }
+.vg-svg .vg-pt-t { font-size: 9.5px; fill: var(--text-3); }
+.vg-pt { fill: var(--text); }
+.vg-escale { fill: var(--warn); animation: vg-apparait 900ms ease-in-out 1.6s both; }
+/* Traits : vitesse constante (longueur ramenée à 1 avec pathLength, progression linéaire). */
+.vg-trait { fill: none; stroke: var(--text-2); stroke-width: 2.5; stroke-dasharray: 1; stroke-dashoffset: 1; animation: vg-trace 1.2s linear .2s forwards; }
+.vg-detour { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: vg-trace 1.6s linear 1.4s forwards; }
+.vg-t1 { animation: vg-apparait 900ms ease-in-out .6s both; }
+.vg-t2 { fill: var(--accent) !important; font-weight: 700; animation: vg-apparait 900ms ease-in-out 2.2s both; }
+.vg-barre { fill: var(--accent); transform-box: fill-box; transform-origin: bottom; animation: vg-monte 900ms ease-in-out both; }
+.vg-nuage { fill: color-mix(in srgb, var(--accent) 35%, transparent); }
+.vg-src { font-size: 11.5px; color: var(--text-3); }
+.vg-grand { display: flex; align-items: baseline; gap: 10px; margin: 10px 0; }
+.vg-grand b { font-size: 40px; font-weight: 800; color: var(--accent) !important; line-height: 1; animation: vg-apparait 900ms ease-in-out both; }
+.vg-grand span { font-weight: 600; color: var(--text); }
+
+@keyframes vg-trace { to { stroke-dashoffset: 0; } }
+@keyframes vg-monte { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes vg-apparait { from { opacity: 0; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vg-trait, .vg-detour { animation: none; stroke-dashoffset: 0; }
+  .vg-barre, .vg-t1, .vg-t2, .vg-escale, .vg-grand b { animation: none; }
+}

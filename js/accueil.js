@@ -163,7 +163,8 @@
           <div class="hero-value num" data-count="${t(r.total)}">${t(r.total)} <small>tCO2e</small></div>
           <div class="hero-sub"><span class="pill accent">${t(r.parEtudiant, 2)} t par étudiant</span></div>
           <p class="hero-eq">C'est autant que ${equiv(r.total)}.</p>
-          <a class="btn primary mv-cta" href="#/mon-trajet">${moi ? 'Modifier mon trajet' : 'Saisir mon trajet'}</a>
+          <div class="mv-actions"><a class="btn primary mv-cta" href="#/mon-trajet">${moi ? 'Modifier mon trajet' : 'Saisir mon trajet'}</a>
+          ${window.Visite && Visite.dispo() ? `<button type="button" class="btn mv-visite" data-visite>Visite guidée</button>` : ''}</div>
           ${moi ? `<p class="muted mv-deja">Trajet envoyé par ${esc(moi.prenom)} ${esc(moi.initiale)}. depuis ce téléphone.</p>` : ''}
         </div>
         <div class="card" style="--i:1">
@@ -176,8 +177,11 @@
       </div>`;
   }
   function bind(view, ctx) {
+    if (window.Visite) Visite.auto(ctx);
     view.addEventListener('click', e => {
-      const b = e.target.closest('button'); if (!b || !q) return;
+      const b = e.target.closest('button'); if (!b) return;
+      if ('visite' in b.dataset) return Visite.lancer(ctx);
+      if (!q) return;
       if (b.dataset.quiz != null && q.choix == null) { q.choix = +b.dataset.quiz; if (q.choix === 0) q.score++; }
       else if ('quizSuivant' in b.dataset) { q.i++; q.choix = null; }
       else if ('quizRecommencer' in b.dataset) q = null;
